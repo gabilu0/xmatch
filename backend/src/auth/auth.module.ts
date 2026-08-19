@@ -1,0 +1,25 @@
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { Usuario } from '../usuario/entities/usuario.entity';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { JwtStrategy } from './strategies/jwt.strategy';
+// import { GoogleStrategy } from './strategies/google.strategy'; // Sprint 1 - login Google
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([Usuario]),
+    PassportModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET ?? 'dev-secret',
+      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN ?? '7d' },
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy],
+  exports: [AuthService],
+})
+export class AuthModule {}
