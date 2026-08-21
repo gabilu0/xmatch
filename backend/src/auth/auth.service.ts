@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { Usuario } from '../usuario/entities/usuario.entity';
 import { CadastroDto } from './dto/cadastro.dto';
 import { LoginDto } from './dto/login.dto';
+import { GoogleProfilePayload } from './strategies/google.strategy';
 
 // Ver UC-01 (casos_de_uso) e RF-01.1 (fase2_requisitos_funcionais).
 @Injectable()
@@ -53,6 +54,73 @@ export class AuthService {
     }
 
     return this.gerarToken(usuario);
+  }
+
+  // Ver UC-02 (casos_de_uso) e fluxo de autenticação (fase3_arquitetura_completa,
+  // Parte 3). Unificação de contas por email: se já existe usuário com esse
+  // email (cadastrado via apelido/senha), vincula o google_id em vez de criar
+  // um novo perfil.
+  async loginComGoogle(payload: GoogleProfilePayload) {
+    const { googleId, email, nomeSugerido } = payload;
+
+    const porGoogleId = await this.usuarioRepository.findOne({
+      where: { googleId },
+    });
+    if (porGoogleId) {
+      return this.gerarToken(porGoogleId);
+    }
+
+    if (email) {
+      const porEmail = await this.usuarioRepository.findOne({
+        where: { email },
+      });
+      if (porEmail) {
+        porEmail.googleId = googleId;
+        await this.usuarioRepository.save(porEmail);
+        return this.gerarToken(porEmail);
+      }
+    }
+
+    const apelido = await this.gerarApelidoUnico(nomeSugerido);
+    const usuario = this.usuarioRepository.create({
+      apelido,
+      email,
+      googleId,
+    });
+    await this.usuarioRepository.save(usuario);
+
+    return this.gerarToken(usuario);
+  }
+
+  // Apelido sugerido a partir do nome do Google (RF-01.2). Editável depois
+  // pelo usuário via RF-01.4 — aqui só garantimos unicidade para o cadastro
+  // não falhar.
+  private async gerarApelidoUnico(nomeBase: string): Promise<string> {
+    const base =
+      nomeBase
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .slice(0, 24) || 'usuario';
+
+    let candidato = base;
+    let tentativas = 0;
+
+    while (
+      await this.usuarioRepository.exist({ where: { apelido: candidato } })
+    ) {
+      tentativas += 1;
+      if (tentativas > 5) {
+        throw new ConflictException(
+          'Não foi possível gerar um apelido único a partir do seu nome Google.',
+        );
+      }
+      const sufixo = Math.random().toString(36).slice(2, 6);
+      candidato = `${base.slice(0, 24 - sufixo.length - 1)}_${sufixo}`;
+    }
+
+    return candidato;
   }
 
   private gerarToken(usuario: Usuario) {
