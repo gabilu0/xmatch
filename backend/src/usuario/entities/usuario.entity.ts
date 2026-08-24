@@ -15,13 +15,19 @@ export class Usuario {
   @Column({ length: 30, unique: true })
   apelido: string;
 
-  @Column({ length: 255, unique: true, nullable: true })
+  @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
   email: string | null;
 
   @Column({ name: 'senha_hash', type: 'text', nullable: true })
   senhaHash: string | null;
 
-  @Column({ name: 'google_id', length: 100, unique: true, nullable: true })
+  @Column({
+    name: 'google_id',
+    type: 'varchar',
+    length: 100,
+    unique: true,
+    nullable: true,
+  })
   googleId: string | null;
 
   @Column({ name: 'foto_url', type: 'text', nullable: true })
