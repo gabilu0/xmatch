@@ -22,17 +22,47 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  // Ver UC-01 (casos_de_uso) e RF-01.1 (fase2_requisitos_funcionais).
+  // Unificação por email (mesma regra de loginComGoogle, no sentido
+  // contrário): se já existe uma conta criada via Google com esse email
+  // e ainda sem senha, vincula a senha a ela em vez de criar um usuário
+  // duplicado.
   async cadastrar(dto: CadastroDto) {
-    const existente = await this.usuarioRepository.findOne({
+    const porEmail = await this.usuarioRepository.findOne({
+      where: { email: dto.email },
+    });
+
+    if (porEmail) {
+      if (porEmail.senhaHash) {
+        throw new ConflictException('Email já está em uso.');
+      }
+
+      if (dto.apelido !== porEmail.apelido) {
+        const apelidoEmUso = await this.usuarioRepository.findOne({
+          where: { apelido: dto.apelido },
+        });
+        if (apelidoEmUso) {
+          throw new ConflictException('Apelido já está em uso.');
+        }
+        porEmail.apelido = dto.apelido;
+      }
+
+      porEmail.senhaHash = await bcrypt.hash(dto.senha, 10);
+      await this.usuarioRepository.save(porEmail);
+      return this.gerarToken(porEmail);
+    }
+
+    const apelidoEmUso = await this.usuarioRepository.findOne({
       where: { apelido: dto.apelido },
     });
-    if (existente) {
+    if (apelidoEmUso) {
       throw new ConflictException('Apelido já está em uso.');
     }
 
     const senhaHash = await bcrypt.hash(dto.senha, 10);
     const usuario = this.usuarioRepository.create({
       apelido: dto.apelido,
+      email: dto.email,
       senhaHash,
     });
     await this.usuarioRepository.save(usuario);
