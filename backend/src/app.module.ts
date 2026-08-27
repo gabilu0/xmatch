@@ -7,7 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 // docs/fase4_planejamento (Sprint 1: Auth, Sprint 2: Sala/Amigos,
 // Sprint 3: Jogo, Sprint 4: Partida/Notificação).
 import { AuthModule } from './auth/auth.module';
-// import { UsuarioModule } from './usuario/usuario.module';
+import { UsuarioModule } from './usuario/usuario.module';
 // import { SalaModule } from './sala/sala.module';
 // import { JogoModule } from './jogo/jogo.module';
 // import { PartidaModule } from './partida/partida.module';
@@ -25,6 +25,7 @@ import { AuthModule } from './auth/auth.module';
     }),
     ScheduleModule.forRoot(),
     AuthModule,
+    UsuarioModule,
   ],
 })
 export class AppModule {}
