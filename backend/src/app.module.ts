@@ -22,6 +22,13 @@ import { UsuarioModule } from './usuario/usuario.module';
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
       synchronize: false, // migrations controlam o schema — nunca true em produção
+      // Neon (e a maioria dos Postgres gerenciados) exige SSL; o Postgres
+      // local via Docker não usa. Ativa via DATABASE_SSL=true no ambiente
+      // de produção (Render), deixa desligado localmente.
+      ssl:
+        process.env.DATABASE_SSL === 'true'
+          ? { rejectUnauthorized: false }
+          : false,
     }),
     ScheduleModule.forRoot(),
     AuthModule,
