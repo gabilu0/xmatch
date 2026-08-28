@@ -8,6 +8,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 // Sprint 3: Jogo, Sprint 4: Partida/Notificação).
 import { AuthModule } from './auth/auth.module';
 import { UsuarioModule } from './usuario/usuario.module';
+import { AmigoModule } from './amigo/amigo.module';
 // import { SalaModule } from './sala/sala.module';
 // import { JogoModule } from './jogo/jogo.module';
 // import { PartidaModule } from './partida/partida.module';
@@ -33,6 +34,7 @@ import { UsuarioModule } from './usuario/usuario.module';
     ScheduleModule.forRoot(),
     AuthModule,
     UsuarioModule,
+    AmigoModule,
   ],
 })
 export class AppModule {}
