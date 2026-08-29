@@ -9,7 +9,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { UsuarioModule } from './usuario/usuario.module';
 import { AmigoModule } from './amigo/amigo.module';
-// import { SalaModule } from './sala/sala.module';
+import { SalaModule } from './sala/sala.module';
 // import { JogoModule } from './jogo/jogo.module';
 // import { PartidaModule } from './partida/partida.module';
 // import { NotificacaoModule } from './notificacao/notificacao.module';
@@ -35,6 +35,7 @@ import { AmigoModule } from './amigo/amigo.module';
     AuthModule,
     UsuarioModule,
     AmigoModule,
+    SalaModule,
   ],
 })
 export class AppModule {}

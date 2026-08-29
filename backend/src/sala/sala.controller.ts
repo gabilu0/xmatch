@@ -1,0 +1,26 @@
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import type { Request } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SalaService } from './sala.service';
+import { CriarSalaDto } from './dto/criar-sala.dto';
+
+interface RequestComUsuario extends Request {
+  user: { id: string; apelido: string };
+}
+
+// Módulo Sala — ver UC-05 e Sprint 2 (fase4_planejamento).
+@Controller('salas')
+@UseGuards(JwtAuthGuard)
+export class SalaController {
+  constructor(private readonly salaService: SalaService) {}
+
+  @Post()
+  criar(@Req() req: RequestComUsuario, @Body() dto: CriarSalaDto) {
+    return this.salaService.criar(req.user.id, dto);
+  }
+
+  @Get()
+  listar(@Req() req: RequestComUsuario) {
+    return this.salaService.listarDoUsuario(req.user.id);
+  }
+}
