@@ -47,4 +47,12 @@ export class SalaController {
   entrar(@Req() req: RequestComUsuario, @Body() dto: EntrarSalaDto) {
     return this.salaService.entrarComCodigo(req.user.id, dto);
   }
+  @Post(':id/sair')
+  sair(@Req() req: RequestComUsuario, @Param('id') id: string) {
+    return this.salaService.sair(req.user.id, id);
+  }
+
+  excluirSala(@Req() req: RequestComUsuario, @Param('id') id: string) {
+    return this.salaService.excluir(req.user.id, id);
+  }
 }

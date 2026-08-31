@@ -142,6 +142,33 @@ export class SalaService {
     return { message: 'Membro expulso com sucesso.', salaId, usuarioId: liderId,};
   }
 
+  async sair(usuarioId: string, salaId: string) {
+    const membro = await this.salaMembroRepository.findOne({
+      where: { salaId, usuarioId },
+    });
+    if (!membro) {
+      throw new NotFoundException('Você não é membro desta sala.');
+    }
+
+    await this.salaMembroRepository.remove(membro);
+
+    return { message: 'Você saiu da sala com sucesso.', salaId, usuarioId };
+  }
+
+  async excluir(liderId: string, salaId: string) {
+    const sala = await this.salaRepository.findOne({ where: { id: salaId } });
+    if (!sala) {
+      throw new NotFoundException('Sala não encontrada.');
+    }
+    if (sala.liderId !== liderId) {
+      throw new ForbiddenException('Só o líder pode excluir a sala.');
+    }
+
+    await this.salaRepository.remove(sala);
+
+    return { message: 'Sala excluída com sucesso.', salaId };
+  }
+
   private async gerarCodigoUnico(): Promise<string> {
     const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem O/0/I/1 (confusos)
     let tentativas = 0;
