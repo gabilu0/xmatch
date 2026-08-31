@@ -37,6 +37,11 @@ export class SalaController {
   gerarConvite(@Req() req: RequestComUsuario, @Param('id') id: string) {
     return this.salaService.gerarConvite(req.user.id, id);
   }
+  
+  @Post(':id/expulsar')
+  expulsar(@Req() req: RequestComUsuario, @Param('id') id: string) {
+    return this.salaService.expulsar(req.user.id, id);
+  }
 
   @Post('entrar')
   entrar(@Req() req: RequestComUsuario, @Body() dto: EntrarSalaDto) {

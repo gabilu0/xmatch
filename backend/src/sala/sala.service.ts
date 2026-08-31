@@ -120,6 +120,28 @@ export class SalaService {
     return this.salaRepository.findOne({ where: { id: convite.salaId } });
   }
 
+  // Ver RF-02.6. Só o líder pode expulsar membros.
+  async expulsar(liderId: string, salaId: string) {
+    const sala = await this.salaRepository.findOne({ where: { id: salaId } });
+    if (!sala) {
+      throw new NotFoundException('Sala não encontrada.');
+    }
+    if (sala.liderId !== liderId) {
+      throw new ForbiddenException('Só o líder pode expulsar membros.');
+    }
+
+    const membro = await this.salaMembroRepository.findOne({
+      where: { salaId, usuarioId: liderId },
+    });
+    if (!membro) {
+      throw new NotFoundException('Membro não encontrado na sala.');
+    }
+
+    await this.salaMembroRepository.remove(membro);
+
+    return { message: 'Membro expulso com sucesso.', salaId, usuarioId: liderId,};
+  }
+
   private async gerarCodigoUnico(): Promise<string> {
     const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem O/0/I/1 (confusos)
     let tentativas = 0;
