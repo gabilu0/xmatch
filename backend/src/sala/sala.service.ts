@@ -11,6 +11,7 @@ import { SalaMembro } from './entities/sala-membro.entity';
 import { Convite } from './entities/convite.entity';
 import { CriarSalaDto } from './dto/criar-sala.dto';
 import { EntrarSalaDto } from './dto/entrar-sala.dto';
+import { TrocaLiderDto } from './dto/troca-lider.dto';
 
 @Injectable()
 export class SalaService {
@@ -120,8 +121,10 @@ export class SalaService {
     return this.salaRepository.findOne({ where: { id: convite.salaId } });
   }
 
-  // Ver RF-02.6. Só o líder pode expulsar membros.
-  async expulsar(liderId: string, salaId: string) {
+  // Ver UC-07. Só o líder expulsa, e não pode se auto-expulsar.
+  // NOTA DE ESCOPO: a UC-07 também prevê remover o membro dos jogos da
+  // sala — isso fica pendente até o Módulo Jogo existir (Sprint 3).
+  async expulsar(liderId: string, salaId: string, usuarioAlvoId: string) {
     const sala = await this.salaRepository.findOne({ where: { id: salaId } });
     if (!sala) {
       throw new NotFoundException('Sala não encontrada.');
@@ -129,44 +132,97 @@ export class SalaService {
     if (sala.liderId !== liderId) {
       throw new ForbiddenException('Só o líder pode expulsar membros.');
     }
+    if (usuarioAlvoId === liderId) {
+      throw new ConflictException('Líder não pode se auto-expulsar.');
+    }
 
     const membro = await this.salaMembroRepository.findOne({
-      where: { salaId, usuarioId: liderId },
+      where: { salaId, usuarioId: usuarioAlvoId },
     });
     if (!membro) {
-      throw new NotFoundException('Membro não encontrado na sala.');
+      throw new NotFoundException('Esse usuário não é membro dessa sala.');
     }
 
     await this.salaMembroRepository.remove(membro);
-
-    return { message: 'Membro expulso com sucesso.', salaId, usuarioId: liderId,};
+    return { removido: true };
   }
 
+  // Ver UC-08. Líder precisa transferir a liderança antes de sair.
   async sair(usuarioId: string, salaId: string) {
+    const sala = await this.salaRepository.findOne({ where: { id: salaId } });
+    if (!sala) {
+      throw new NotFoundException('Sala não encontrada.');
+    }
+    if (sala.liderId === usuarioId) {
+      throw new ConflictException(
+        'Você é o líder — transfira a liderança antes de sair.',
+      );
+    }
+
     const membro = await this.salaMembroRepository.findOne({
       where: { salaId, usuarioId },
     });
     if (!membro) {
-      throw new NotFoundException('Você não é membro desta sala.');
+      throw new NotFoundException('Você não é membro dessa sala.');
     }
 
     await this.salaMembroRepository.remove(membro);
-
-    return { message: 'Você saiu da sala com sucesso.', salaId, usuarioId };
+    return { removido: true };
   }
 
-  async excluir(liderId: string, salaId: string) {
+  // Ver UC-10 e RF-02.9/RF-02.10. Encerrar ≠ excluir: os dados continuam
+  // existindo, a sala fica em modo somente leitura por 30 dias a partir de
+  // encerrada_em. Não existe rota de exclusão física — não há requisito
+  // que peça isso, e contradiria a RF-02.10.
+  async encerrar(liderId: string, salaId: string) {
     const sala = await this.salaRepository.findOne({ where: { id: salaId } });
     if (!sala) {
       throw new NotFoundException('Sala não encontrada.');
     }
     if (sala.liderId !== liderId) {
-      throw new ForbiddenException('Só o líder pode excluir a sala.');
+      throw new ForbiddenException('Só o líder pode encerrar a sala.');
+    }
+    if (sala.encerrada) {
+      throw new ConflictException('Essa sala já está encerrada.');
     }
 
-    await this.salaRepository.remove(sala);
+    sala.encerrada = true;
+    sala.encerradaEm = new Date();
+    await this.salaRepository.save(sala);
 
-    return { message: 'Sala excluída com sucesso.', salaId };
+    return sala;
+  }
+
+  // Ver UC-09. Só o líder atual transfere, e só para quem já é membro.
+  async transferirLideranca(
+    liderId: string,
+    salaId: string,
+    dto: TrocaLiderDto,
+  ) {
+    const sala = await this.salaRepository.findOne({ where: { id: salaId } });
+    if (!sala) {
+      throw new NotFoundException('Sala não encontrada.');
+    }
+    if (sala.liderId !== liderId) {
+      throw new ForbiddenException('Só o líder pode transferir a liderança.');
+    }
+    if (dto.novoLiderId === liderId) {
+      throw new ConflictException('Você já é o líder dessa sala.');
+    }
+
+    const novoLiderEhMembro = await this.salaMembroRepository.findOne({
+      where: { salaId, usuarioId: dto.novoLiderId },
+    });
+    if (!novoLiderEhMembro) {
+      throw new NotFoundException(
+        'O novo líder precisa já ser membro da sala.',
+      );
+    }
+
+    sala.liderId = dto.novoLiderId;
+    await this.salaRepository.save(sala);
+
+    return sala;
   }
 
   private async gerarCodigoUnico(): Promise<string> {

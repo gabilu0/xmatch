@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SalaService } from './sala.service';
 import { CriarSalaDto } from './dto/criar-sala.dto';
 import { EntrarSalaDto } from './dto/entrar-sala.dto';
+import { TrocaLiderDto } from './dto/troca-lider.dto';
 
 interface RequestComUsuario extends Request {
   user: { id: string; apelido: string };
@@ -37,24 +38,37 @@ export class SalaController {
   gerarConvite(@Req() req: RequestComUsuario, @Param('id') id: string) {
     return this.salaService.gerarConvite(req.user.id, id);
   }
-  
-  @Post(':id/expulsar')
-  expulsar(@Req() req: RequestComUsuario, @Param('id') id: string) {
-    return this.salaService.expulsar(req.user.id, id);
-  }
 
   @Post('entrar')
   entrar(@Req() req: RequestComUsuario, @Body() dto: EntrarSalaDto) {
     return this.salaService.entrarComCodigo(req.user.id, dto);
   }
-  
+
+  @Post(':id/membros/:usuarioId/expulsar')
+  expulsar(
+    @Req() req: RequestComUsuario,
+    @Param('id') id: string,
+    @Param('usuarioId') usuarioId: string,
+  ) {
+    return this.salaService.expulsar(req.user.id, id, usuarioId);
+  }
+
   @Post(':id/sair')
   sair(@Req() req: RequestComUsuario, @Param('id') id: string) {
     return this.salaService.sair(req.user.id, id);
   }
 
-  @Post(':id/excluir')
-  excluirSala(@Req() req: RequestComUsuario, @Param('id') id: string) {
-    return this.salaService.excluir(req.user.id, id);
+  @Post(':id/encerrar')
+  encerrar(@Req() req: RequestComUsuario, @Param('id') id: string) {
+    return this.salaService.encerrar(req.user.id, id);
+  }
+
+  @Post(':id/transferir-lideranca')
+  transferirLideranca(
+    @Req() req: RequestComUsuario,
+    @Param('id') id: string,
+    @Body() dto: TrocaLiderDto,
+  ) {
+    return this.salaService.transferirLideranca(req.user.id, id, dto);
   }
 }
