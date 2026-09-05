@@ -5,9 +5,13 @@ import { SalaMembro } from './entities/sala-membro.entity';
 import { Convite } from './entities/convite.entity';
 import { SalaController } from './sala.controller';
 import { SalaService } from './sala.service';
+import { NotificacaoModule } from '../notificacao/notificacao.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Sala, SalaMembro, Convite])],
+  imports: [
+    TypeOrmModule.forFeature([Sala, SalaMembro, Convite]),
+    NotificacaoModule,
+  ],
   controllers: [SalaController],
   providers: [SalaService],
   exports: [TypeOrmModule],

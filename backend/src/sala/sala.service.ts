@@ -12,6 +12,7 @@ import { Convite } from './entities/convite.entity';
 import { CriarSalaDto } from './dto/criar-sala.dto';
 import { EntrarSalaDto } from './dto/entrar-sala.dto';
 import { TrocaLiderDto } from './dto/troca-lider.dto';
+import { NotificacaoService } from '../notificacao/notificacao.service';
 
 @Injectable()
 export class SalaService {
@@ -22,6 +23,7 @@ export class SalaService {
     private readonly salaMembroRepository: Repository<SalaMembro>,
     @InjectRepository(Convite)
     private readonly conviteRepository: Repository<Convite>,
+    private readonly notificacaoService: NotificacaoService,
   ) {}
 
   // Ver UC-05 e RF-02.1/RF-02.3. Quem cria a sala torna-se líder
@@ -118,6 +120,10 @@ export class SalaService {
     convite.usado = true;
     await this.conviteRepository.save(convite);
 
+    await this.notificacaoService.criar(usuarioId, 'adicionado_sala', {
+      salaId: convite.salaId,
+    });
+
     return this.salaRepository.findOne({ where: { id: convite.salaId } });
   }
 
@@ -190,6 +196,19 @@ export class SalaService {
     sala.encerradaEm = new Date();
     await this.salaRepository.save(sala);
 
+    const membros = await this.salaMembroRepository.find({
+      where: { salaId },
+    });
+    await Promise.all(
+      membros
+        .filter((membro) => membro.usuarioId !== liderId)
+        .map((membro) =>
+          this.notificacaoService.criar(membro.usuarioId, 'sala_encerrada', {
+            salaId,
+          }),
+        ),
+    );
+
     return sala;
   }
 
@@ -221,6 +240,12 @@ export class SalaService {
 
     sala.liderId = dto.novoLiderId;
     await this.salaRepository.save(sala);
+
+    await this.notificacaoService.criar(
+      dto.novoLiderId,
+      'lideranca_transferida',
+      { salaId },
+    );
 
     return sala;
   }
