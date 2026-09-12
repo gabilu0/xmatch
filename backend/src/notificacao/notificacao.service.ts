@@ -3,11 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notificacao } from './entities/notificacao.entity';
 
-// Tipos suportados até o Sprint 2 — ver fase3_arquitetura_completa, Parte 2.
+// Tipos suportados até o Sprint 3 — ver fase3_arquitetura_completa, Parte 2.
 export type TipoNotificacao =
   | 'adicionado_sala'
   | 'sala_encerrada'
-  | 'lideranca_transferida';
+  | 'lideranca_transferida'
+  | 'adicionado_jogo';
 
 @Injectable()
 export class NotificacaoService {
@@ -24,13 +25,14 @@ export class NotificacaoService {
   async criar(
     usuarioId: string,
     tipo: TipoNotificacao,
-    opcoes: { salaId?: string; partidaId?: string } = {},
+    opcoes: { salaId?: string; partidaId?: string; jogoId?: string } = {},
   ) {
     const notificacao = this.notificacaoRepository.create({
       usuarioId,
       tipo,
       salaId: opcoes.salaId ?? null,
       partidaId: opcoes.partidaId ?? null,
+      jogoId: opcoes.jogoId ?? null,
     });
     return this.notificacaoRepository.save(notificacao);
   }
