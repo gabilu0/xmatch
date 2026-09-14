@@ -2,16 +2,17 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Ver fase4_planejamento (Sprint 5) e fase3_stack — PWA como estratégia de
-// entrega, um código para Android e iPhone, sem loja de apps.
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'firebase-messaging-sw.ts',
       registerType: 'autoUpdate',
-      // Service worker de cache básico (offline/instalação). A parte de
-      // notificações push via Firebase entra à parte, quando o Firebase
-      // for configurado — precisa de um firebase-messaging-sw.js próprio.
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+      },
       manifest: {
         name: 'xMatch',
         short_name: 'xMatch',
