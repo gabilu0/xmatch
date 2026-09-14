@@ -3,12 +3,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notificacao } from './entities/notificacao.entity';
 
-// Tipos suportados até o Sprint 3 — ver fase3_arquitetura_completa, Parte 2.
+// Tipos suportados até o Sprint 4 — ver fase3_arquitetura_completa, Parte 2.
 export type TipoNotificacao =
   | 'adicionado_sala'
   | 'sala_encerrada'
   | 'lideranca_transferida'
-  | 'adicionado_jogo';
+  | 'adicionado_jogo'
+  | 'vitoria_registrada'
+  | 'partida_contestada'
+  | 'partida_confirmada'
+  | 'partida_cancelada';
 
 @Injectable()
 export class NotificacaoService {

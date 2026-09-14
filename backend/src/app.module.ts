@@ -12,8 +12,8 @@ import { AmigoModule } from './amigo/amigo.module';
 import { SalaModule } from './sala/sala.module';
 import { NotificacaoModule } from './notificacao/notificacao.module';
 import { JogoModule } from './jogo/jogo.module';
-// import { PartidaModule } from './partida/partida.module';
-// import { SchedulerModule } from './scheduler/scheduler.module';
+import { PartidaModule } from './partida/partida.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -38,6 +38,8 @@ import { JogoModule } from './jogo/jogo.module';
     SalaModule,
     NotificacaoModule,
     JogoModule,
+    PartidaModule,
+    SchedulerModule,
   ],
 })
 export class AppModule {}

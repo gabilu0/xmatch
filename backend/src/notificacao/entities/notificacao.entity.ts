@@ -9,16 +9,16 @@ import {
 import { Usuario } from '../../usuario/entities/usuario.entity';
 import { Sala } from '../../sala/entities/sala.entity';
 import { Jogo } from '../../jogo/entities/jogo.entity';
+import { Partida } from '../../partida/entities/partida.entity';
 
 // Tabela `notificacao` — ver fase3_arquitetura_completa, Parte 2.
-// partidaId fica sem FK por enquanto: a tabela `partida` só existe a partir
-// do Sprint 4. O campo já existe aqui (nullable) para não precisar de uma
-// migration de ALTER TABLE mais tarde — a FK real pode ser adicionada então.
 //
 // jogoId foi adicionado no Sprint 3: o tipo 'adicionado_jogo' já constava
 // na tabela de referência do fase3_arquitetura_completa, mas o schema da
 // notificacao não tinha coluna pra vincular a qual jogo. Como `jogo` já
 // existe a partir de agora, criamos com FK real.
+//
+// partidaId ganhou a FK real no Sprint 4, agora que `partida` existe.
 @Entity('notificacao')
 export class Notificacao {
   @PrimaryGeneratedColumn('uuid')
@@ -33,6 +33,10 @@ export class Notificacao {
 
   @Column({ name: 'partida_id', type: 'uuid', nullable: true })
   partidaId: string | null;
+
+  @ManyToOne(() => Partida, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'partida_id' })
+  partida: Partida | null;
 
   @Column({ name: 'sala_id', type: 'uuid', nullable: true })
   salaId: string | null;
