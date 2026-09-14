@@ -1,10 +1,20 @@
-// Placeholder — telas reais (Login, Salas, Jogo, Perfil...) entram no Sprint 5.
-// Ver fase4_planejamento.docx e casos_de_uso.docx para o fluxo completo.
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
+function Placeholder() {
+  return (
+    <div style={{ padding: 24, fontFamily: 'sans-serif' }}>
+      <h1>xMatch</h1>
+      <p>Scaffold do frontend funcionando. Telas de verdade vêm a seguir.</p>
+    </div>
+  );
+}
+
 export default function App() {
   return (
-    <main style={{ fontFamily: 'sans-serif', padding: '2rem' }}>
-      <h1>xMatch</h1>
-      <p>Frontend em construção — Sprint 5 do planejamento.</p>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Placeholder />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
