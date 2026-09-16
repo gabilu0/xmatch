@@ -1,5 +1,13 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { CadastroDto } from './dto/cadastro.dto';
 import { LoginDto } from './dto/login.dto';
@@ -31,7 +39,24 @@ export class AuthController {
   // popula req.user com o payload retornado por GoogleStrategy.validate.
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  googleCallback(@Req() req: Request & { user: GoogleProfilePayload }) {
-    return this.authService.loginComGoogle(req.user);
+  async googleCallback(
+    @Req() req: Request & { user: GoogleProfilePayload },
+    @Res() res: Response,
+  ) {
+    const autenticacao = await this.authService.loginComGoogle(req.user);
+    const frontendUrl = process.env.FRONTEND_URL?.trim();
+
+    // Preserva o retorno JSON atual enquanto o frontend ainda não estiver
+    // publicado/configurado no ambiente do backend.
+    if (!frontendUrl) {
+      return res.json(autenticacao);
+    }
+
+    const callbackUrl = new URL('/auth/callback', frontendUrl);
+    callbackUrl.hash = new URLSearchParams({
+      token: autenticacao.accessToken,
+    }).toString();
+
+    return res.redirect(callbackUrl.toString());
   }
 }

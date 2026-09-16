@@ -1,0 +1,141 @@
+:root {
+  color: #e5eef8;
+  background: #0f172a;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: #0f172a;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgb(56 189 248 / 45%);
+  outline-offset: 2px;
+}
+
+.button {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  border: 0;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.button--primary {
+  color: #082f49;
+  background: #38bdf8;
+}
+
+.button--primary:not(:disabled):hover {
+  background: #7dd3fc;
+}
+
+.button--ghost {
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  background: transparent;
+}
+
+.button--ghost:not(:disabled):hover {
+  border-color: #64748b;
+  background: rgb(51 65 85 / 45%);
+}
+
+.eyebrow {
+  margin: 0 0 0.4rem;
+  color: #38bdf8;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.form-error,
+.form-message {
+  margin: 0;
+  border-radius: 10px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.form-error {
+  color: #fecaca;
+  border: 1px solid rgb(248 113 113 / 35%);
+  background: rgb(127 29 29 / 30%);
+}
+
+.form-message {
+  color: #bae6fd;
+  border: 1px solid rgb(56 189 248 / 30%);
+  background: rgb(12 74 110 / 28%);
+}
+
+.placeholder-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.placeholder-page > div {
+  width: min(100%, 34rem);
+}
+
+.placeholder-page h1 {
+  margin: 0;
+  font-size: clamp(2rem, 9vw, 3.5rem);
+}
+
+.placeholder-page p:not(.eyebrow) {
+  color: #94a3b8;
+  line-height: 1.6;
+}
