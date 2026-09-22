@@ -14,7 +14,7 @@ export function SalasPage() {
       <div>
         <p className="eyebrow">xMatch</p>
         <h1>Suas salas</h1>
-        <p>A listagem de salas será implementada no próximo passo da Sprint 5.</p>
+        <p>Suas salas aparecerão aqui.</p>
         <button className="button button--ghost" type="button" onClick={sair}>
           Sair
         </button>
