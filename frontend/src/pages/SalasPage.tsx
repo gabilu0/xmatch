@@ -100,10 +100,7 @@ export function SalasPage() {
     <main className="salas-page">
       <header className="salas-page__header">
         <p className="eyebrow">xMatch</p>
-        <h1>Suas salas</h1>
-        <p className="salas-page__intro">
-          Jogue com seus amigos em salas privadas.
-        </p>
+        <h1>SALAS</h1>
       </header>
 
       {carregando && <p role="status">Carregando salas...</p>}
