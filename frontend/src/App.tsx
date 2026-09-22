@@ -3,8 +3,11 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { AuthPage } from './pages/AuthPage';
 import { LayoutAbas } from './components/LayoutAbas';
-import { PaginaEmConstrucao } from './pages/PaginaEmConstrucao';
+import { AmigosPage } from './pages/AmigosPage';
+import { PerfilPage } from './pages/PerfilPage';
 import { SalasPage } from './pages/SalasPage';
+import { SalaPage } from './pages/SalaPage';
+import { JogoPage } from './pages/JogoPage';
 import { getToken } from './services/api';
 
 function Inicio() {
@@ -30,24 +33,10 @@ export default function App() {
           }
         >
           <Route path="/salas" element={<SalasPage />} />
-          <Route
-            path="/perfil"
-            element={
-              <PaginaEmConstrucao
-                titulo="Perfil"
-                descricao="Seu perfil ficará disponível aqui."
-              />
-            }
-          />
-          <Route
-            path="/amigos"
-            element={
-              <PaginaEmConstrucao
-                titulo="Amigos"
-                descricao="Seus amigos ficarão disponíveis aqui."
-              />
-            }
-          />
+          <Route path="/salas/:salaId" element={<SalaPage />} />
+          <Route path="/salas/:salaId/jogos/:jogoId" element={<JogoPage />} />
+          <Route path="/perfil" element={<PerfilPage />} />
+          <Route path="/amigos" element={<AmigosPage />} />
         </Route>
         <Route path="*" element={<Inicio />} />
       </Routes>

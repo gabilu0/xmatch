@@ -61,6 +61,28 @@ export class SalaService {
       .getMany();
   }
 
+  async detalhar(usuarioId: string, salaId: string) {
+    const sala = await this.salaRepository.findOne({ where: { id: salaId } });
+    if (!sala) throw new NotFoundException('Sala não encontrada.');
+    const membro = await this.salaMembroRepository.findOne({
+      where: { salaId, usuarioId },
+    });
+    if (!membro) throw new ForbiddenException('Você não é membro dessa sala.');
+    const membros = await this.salaMembroRepository.find({
+      where: { salaId },
+      relations: ['usuario'],
+      order: { entrouEm: 'ASC' },
+    });
+    return {
+      ...sala,
+      membros: membros.map((item) => ({
+        id: item.usuarioId,
+        apelido: item.usuario.apelido,
+        fotoUrl: item.usuario.fotoUrl,
+      })),
+    };
+  }
+
   // Ver UC-06 e RF-02.5. Só o líder pode gerar convites. Expira em 48h ou
   // após 1 uso, o que ocorrer primeiro.
   async gerarConvite(liderId: string, salaId: string) {
@@ -71,6 +93,7 @@ export class SalaService {
     if (sala.liderId !== liderId) {
       throw new ForbiddenException('Só o líder pode gerar convites.');
     }
+    if (sala.encerrada) throw new ConflictException('Sala encerrada é somente leitura.');
 
     const codigo = await this.gerarCodigoUnico();
     const expiraEm = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48h
@@ -102,6 +125,8 @@ export class SalaService {
     if (convite.expiraEm.getTime() < Date.now()) {
       throw new ConflictException('Convite expirado.');
     }
+    const sala = await this.salaRepository.findOne({ where: { id: convite.salaId } });
+    if (!sala || sala.encerrada) throw new ConflictException('Sala encerrada não aceita novos membros.');
 
     const jaEhMembro = await this.salaMembroRepository.findOne({
       where: { salaId: convite.salaId, usuarioId },
@@ -124,7 +149,7 @@ export class SalaService {
       salaId: convite.salaId,
     });
 
-    return this.salaRepository.findOne({ where: { id: convite.salaId } });
+    return sala;
   }
 
   // Ver UC-07. Só o líder expulsa, e não pode se auto-expulsar.
@@ -138,6 +163,7 @@ export class SalaService {
     if (sala.liderId !== liderId) {
       throw new ForbiddenException('Só o líder pode expulsar membros.');
     }
+    if (sala.encerrada) throw new ConflictException('Sala encerrada é somente leitura.');
     if (usuarioAlvoId === liderId) {
       throw new ConflictException('Líder não pode se auto-expulsar.');
     }
@@ -164,6 +190,7 @@ export class SalaService {
         'Você é o líder — transfira a liderança antes de sair.',
       );
     }
+    if (sala.encerrada) throw new ConflictException('Sala encerrada é somente leitura.');
 
     const membro = await this.salaMembroRepository.findOne({
       where: { salaId, usuarioId },
@@ -225,6 +252,7 @@ export class SalaService {
     if (sala.liderId !== liderId) {
       throw new ForbiddenException('Só o líder pode transferir a liderança.');
     }
+    if (sala.encerrada) throw new ConflictException('Sala encerrada é somente leitura.');
     if (dto.novoLiderId === liderId) {
       throw new ConflictException('Você já é o líder dessa sala.');
     }

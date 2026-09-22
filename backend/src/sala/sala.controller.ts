@@ -34,6 +34,11 @@ export class SalaController {
     return this.salaService.listarDoUsuario(req.user.id);
   }
 
+  @Get(':id')
+  detalhar(@Req() req: RequestComUsuario, @Param('id') id: string) {
+    return this.salaService.detalhar(req.user.id, id);
+  }
+
   @Post(':id/convites')
   gerarConvite(@Req() req: RequestComUsuario, @Param('id') id: string) {
     return this.salaService.gerarConvite(req.user.id, id);

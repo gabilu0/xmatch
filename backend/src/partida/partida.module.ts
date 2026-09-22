@@ -5,6 +5,7 @@ import { PartidaResultado } from './entities/partida-resultado.entity';
 import { Jogo } from '../jogo/entities/jogo.entity';
 import { JogoMembro } from '../jogo/entities/jogo-membro.entity';
 import { Season } from '../jogo/entities/season.entity';
+import { SalaMembro } from '../sala/entities/sala-membro.entity';
 import { PartidaController } from './partida.controller';
 import { PartidaService } from './partida.service';
 import { NotificacaoModule } from '../notificacao/notificacao.module';
@@ -17,6 +18,7 @@ import { NotificacaoModule } from '../notificacao/notificacao.module';
       Jogo,
       JogoMembro,
       Season,
+      SalaMembro,
     ]),
     NotificacaoModule,
   ],

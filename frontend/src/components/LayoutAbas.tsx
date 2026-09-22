@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { observarNotificacoesEmPrimeiroPlano } from '../services/firebase';
 
 type Aba = 'salas' | 'perfil' | 'amigos';
 
@@ -46,8 +48,23 @@ function IconeAba({ aba }: { aba: Aba }) {
 }
 
 export function LayoutAbas() {
+  const [notificacao, setNotificacao] = useState('');
+
+  useEffect(() => {
+    let ativo = true;
+    let cancelar: (() => void) | null = null;
+    observarNotificacoesEmPrimeiroPlano((payload) => {
+      setNotificacao(payload.data?.title ?? payload.notification?.title ?? 'Nova notificação no xMatch');
+    }).then((unsubscribe) => {
+      if (ativo) cancelar = unsubscribe;
+      else unsubscribe?.();
+    }).catch(() => { /* Notificações são opcionais no navegador. */ });
+    return () => { ativo = false; cancelar?.(); };
+  }, []);
+
   return (
     <div className="app-shell">
+      {notificacao && <div className="notification-toast" role="status"><span>{notificacao}</span><button type="button" onClick={() => setNotificacao('')} aria-label="Fechar notificação">×</button></div>}
       <div className="app-shell__content">
         <Outlet />
       </div>

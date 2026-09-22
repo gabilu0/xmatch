@@ -202,3 +202,23 @@ input:focus-visible {
   color: #e5eef8;
   background: rgb(51 65 85 / 45%);
 }
+
+.notification-toast {
+  position: fixed;
+  z-index: 20;
+  top: calc(1rem + env(safe-area-inset-top));
+  right: 1rem;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: min(40rem, calc(100% - 2rem));
+  margin: 0 auto;
+  border: 1px solid #38bdf8;
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  background: #164e63;
+  box-shadow: 0 10px 30px #020617;
+}
+.notification-toast button { border: 0; color: white; background: transparent; font-size: 1.5rem; cursor: pointer; }

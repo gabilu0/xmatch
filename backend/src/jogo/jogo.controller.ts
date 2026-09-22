@@ -36,8 +36,13 @@ export class JogoController {
   }
 
   @Get('salas/:salaId/jogos')
-  listar(@Param('salaId') salaId: string) {
-    return this.jogoService.listarPorSala(salaId);
+  listar(@Req() req: RequestComUsuario, @Param('salaId') salaId: string) {
+    return this.jogoService.listarPorSala(req.user.id, salaId);
+  }
+
+  @Get('jogos/:id/seasons')
+  listarSeasons(@Req() req: RequestComUsuario, @Param('id') id: string) {
+    return this.jogoService.listarSeasons(req.user.id, id);
   }
 
   @Post('jogos/:id/membros')

@@ -3,11 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Notificacao } from './entities/notificacao.entity';
 import { Usuario } from '../usuario/entities/usuario.entity';
 import { Sala } from '../sala/entities/sala.entity';
+import { UsuarioDispositivo } from '../usuario/entities/usuario-dispositivo.entity';
 import { NotificacaoController } from './notificacao.controller';
 import { NotificacaoService } from './notificacao.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Notificacao, Usuario, Sala])],
+  imports: [TypeOrmModule.forFeature([Notificacao, Usuario, Sala, UsuarioDispositivo])],
   controllers: [NotificacaoController],
   providers: [NotificacaoService],
   exports: [NotificacaoService],

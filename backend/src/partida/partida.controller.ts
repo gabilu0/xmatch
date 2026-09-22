@@ -31,9 +31,24 @@ export class PartidaController {
     return this.partidaService.registrarVitoria(req.user.id, jogoId, dto);
   }
 
+  @Get('jogos/:jogoId/partidas')
+  listarPorJogo(@Req() req: RequestComUsuario, @Param('jogoId') jogoId: string) {
+    return this.partidaService.listarPorJogo(req.user.id, jogoId);
+  }
+
+  @Get('partidas/pendentes')
+  listarPendentes(@Req() req: RequestComUsuario) {
+    return this.partidaService.listarPendentes(req.user.id);
+  }
+
   @Get('jogos/:jogoId/placar')
-  placar(@Param('jogoId') jogoId: string) {
-    return this.partidaService.placar(jogoId);
+  placar(@Req() req: RequestComUsuario, @Param('jogoId') jogoId: string) {
+    return this.partidaService.placar(req.user.id, jogoId);
+  }
+
+  @Get('salas/:salaId/placar')
+  placarSala(@Req() req: RequestComUsuario, @Param('salaId') salaId: string) {
+    return this.partidaService.placarSala(req.user.id, salaId);
   }
 
   @Post('partidas/:id/contestar')

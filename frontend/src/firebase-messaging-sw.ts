@@ -23,14 +23,14 @@ const firebaseApp = initializeApp({
 const messaging = getMessaging(firebaseApp);
 
 onBackgroundMessage(messaging, (payload) => {
-  const titulo = payload.notification?.title ?? 'xMatch';
+  const titulo = payload.data?.title ?? payload.notification?.title ?? 'xMatch';
   const opcoes: NotificationOptions = {
-    body: payload.notification?.body,
+    body: payload.data?.body ?? payload.notification?.body,
     icon: payload.notification?.icon ?? '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
     data: {
-      url: payload.fcmOptions?.link ?? '/',
       ...payload.data,
+      url: payload.data?.url ?? payload.fcmOptions?.link ?? '/',
     },
   };
 
