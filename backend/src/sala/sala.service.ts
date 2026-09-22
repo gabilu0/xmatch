@@ -9,6 +9,8 @@ import { Repository } from 'typeorm';
 import { Sala } from './entities/sala.entity';
 import { SalaMembro } from './entities/sala-membro.entity';
 import { Convite } from './entities/convite.entity';
+import { Jogo } from '../jogo/entities/jogo.entity';
+import { JogoMembro } from '../jogo/entities/jogo-membro.entity';
 import { CriarSalaDto } from './dto/criar-sala.dto';
 import { EntrarSalaDto } from './dto/entrar-sala.dto';
 import { TrocaLiderDto } from './dto/troca-lider.dto';
@@ -23,6 +25,8 @@ export class SalaService {
     private readonly salaMembroRepository: Repository<SalaMembro>,
     @InjectRepository(Convite)
     private readonly conviteRepository: Repository<Convite>,
+    @InjectRepository(Jogo)
+    private readonly jogoRepository: Repository<Jogo>,
     private readonly notificacaoService: NotificacaoService,
   ) {}
 
@@ -61,6 +65,28 @@ export class SalaService {
       .getMany();
   }
 
+  async detalhar(usuarioId: string, salaId: string) {
+    const sala = await this.salaRepository.findOne({ where: { id: salaId } });
+    if (!sala) throw new NotFoundException('Sala não encontrada.');
+    const membro = await this.salaMembroRepository.findOne({
+      where: { salaId, usuarioId },
+    });
+    if (!membro) throw new ForbiddenException('Você não é membro dessa sala.');
+    const membros = await this.salaMembroRepository.find({
+      where: { salaId },
+      relations: ['usuario'],
+      order: { entrouEm: 'ASC' },
+    });
+    return {
+      ...sala,
+      membros: membros.map((item) => ({
+        id: item.usuarioId,
+        apelido: item.usuario.apelido,
+        fotoUrl: item.usuario.fotoUrl,
+      })),
+    };
+  }
+
   // Ver UC-06 e RF-02.5. Só o líder pode gerar convites. Expira em 48h ou
   // após 1 uso, o que ocorrer primeiro.
   async gerarConvite(liderId: string, salaId: string) {
@@ -71,6 +97,7 @@ export class SalaService {
     if (sala.liderId !== liderId) {
       throw new ForbiddenException('Só o líder pode gerar convites.');
     }
+    if (sala.encerrada) throw new ConflictException('Sala encerrada é somente leitura.');
 
     const codigo = await this.gerarCodigoUnico();
     const expiraEm = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48h
@@ -102,6 +129,8 @@ export class SalaService {
     if (convite.expiraEm.getTime() < Date.now()) {
       throw new ConflictException('Convite expirado.');
     }
+    const sala = await this.salaRepository.findOne({ where: { id: convite.salaId } });
+    if (!sala || sala.encerrada) throw new ConflictException('Sala encerrada não aceita novos membros.');
 
     const jaEhMembro = await this.salaMembroRepository.findOne({
       where: { salaId: convite.salaId, usuarioId },
@@ -124,12 +153,11 @@ export class SalaService {
       salaId: convite.salaId,
     });
 
-    return this.salaRepository.findOne({ where: { id: convite.salaId } });
+    return sala;
   }
 
   // Ver UC-07. Só o líder expulsa, e não pode se auto-expulsar.
-  // NOTA DE ESCOPO: a UC-07 também prevê remover o membro dos jogos da
-  // sala — isso fica pendente até o Módulo Jogo existir (Sprint 3).
+  // UC-07: remover também de todos os jogos da sala.
   async expulsar(liderId: string, salaId: string, usuarioAlvoId: string) {
     const sala = await this.salaRepository.findOne({ where: { id: salaId } });
     if (!sala) {
@@ -138,6 +166,7 @@ export class SalaService {
     if (sala.liderId !== liderId) {
       throw new ForbiddenException('Só o líder pode expulsar membros.');
     }
+    if (sala.encerrada) throw new ConflictException('Sala encerrada é somente leitura.');
     if (usuarioAlvoId === liderId) {
       throw new ConflictException('Líder não pode se auto-expulsar.');
     }
@@ -149,7 +178,7 @@ export class SalaService {
       throw new NotFoundException('Esse usuário não é membro dessa sala.');
     }
 
-    await this.salaMembroRepository.remove(membro);
+    await this.removerMembroEJogos(salaId, membro);
     return { removido: true };
   }
 
@@ -164,6 +193,7 @@ export class SalaService {
         'Você é o líder — transfira a liderança antes de sair.',
       );
     }
+    if (sala.encerrada) throw new ConflictException('Sala encerrada é somente leitura.');
 
     const membro = await this.salaMembroRepository.findOne({
       where: { salaId, usuarioId },
@@ -172,8 +202,22 @@ export class SalaService {
       throw new NotFoundException('Você não é membro dessa sala.');
     }
 
-    await this.salaMembroRepository.remove(membro);
+    await this.removerMembroEJogos(salaId, membro);
     return { removido: true };
+  }
+
+  private async removerMembroEJogos(salaId: string, membro: SalaMembro) {
+    const jogos = await this.jogoRepository.find({ where: { salaId } });
+    await this.salaMembroRepository.manager.transaction(async (manager) => {
+      for (const jogo of jogos) {
+        await manager.delete(JogoMembro, { jogoId: jogo.id, usuarioId: membro.usuarioId });
+        const restantes = await manager.count(JogoMembro, { where: { jogoId: jogo.id } });
+        if (restantes < 2) {
+          await manager.update(Jogo, { id: jogo.id }, { arquivado: true });
+        }
+      }
+      await manager.delete(SalaMembro, { id: membro.id });
+    });
   }
 
   // Ver UC-10 e RF-02.9/RF-02.10. Encerrar ≠ excluir: os dados continuam
@@ -225,6 +269,7 @@ export class SalaService {
     if (sala.liderId !== liderId) {
       throw new ForbiddenException('Só o líder pode transferir a liderança.');
     }
+    if (sala.encerrada) throw new ConflictException('Sala encerrada é somente leitura.');
     if (dto.novoLiderId === liderId) {
       throw new ConflictException('Você já é o líder dessa sala.');
     }

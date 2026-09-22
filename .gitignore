@@ -7,6 +7,9 @@ dist/
 build/
 **/dist/
 **/build/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # Ambiente
 .env

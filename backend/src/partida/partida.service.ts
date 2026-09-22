@@ -12,6 +12,7 @@ import { PartidaResultado } from './entities/partida-resultado.entity';
 import { Jogo } from '../jogo/entities/jogo.entity';
 import { JogoMembro } from '../jogo/entities/jogo-membro.entity';
 import { Season } from '../jogo/entities/season.entity';
+import { SalaMembro } from '../sala/entities/sala-membro.entity';
 import { RegistrarVitoriaDto } from './dto/registrar-vitoria.dto';
 import { NotificacaoService } from '../notificacao/notificacao.service';
 
@@ -30,6 +31,8 @@ export class PartidaService {
     private readonly jogoMembroRepository: Repository<JogoMembro>,
     @InjectRepository(Season)
     private readonly seasonRepository: Repository<Season>,
+    @InjectRepository(SalaMembro)
+    private readonly salaMembros: Repository<SalaMembro>,
     private readonly notificacaoService: NotificacaoService,
   ) {}
 
@@ -41,10 +44,15 @@ export class PartidaService {
     jogoId: string,
     dto: RegistrarVitoriaDto,
   ) {
-    const jogo = await this.jogoRepository.findOne({ where: { id: jogoId } });
+    const jogo = await this.jogoRepository.findOne({ where: { id: jogoId }, relations: ['sala'] });
     if (!jogo) {
       throw new NotFoundException('Jogo não encontrado.');
     }
+    if (jogo.sala.encerrada || jogo.arquivado) {
+      throw new ConflictException('Este jogo não aceita novas partidas.');
+    }
+    const membroDaSala = await this.salaMembros.findOne({ where: { salaId: jogo.salaId, usuarioId: registradoPorId } });
+    if (!membroDaSala) throw new ForbiddenException('Você não é membro dessa sala.');
 
     const membrosDoJogo = await this.jogoMembroRepository.find({
       where: { jogoId },
@@ -229,7 +237,59 @@ export class PartidaService {
       throw new ForbiddenException('Você não é membro desse jogo.');
     }
 
+    const jogo = await this.jogoRepository.findOne({ where: { id: partida.jogoId } });
+    const membroDaSala = jogo && await this.salaMembros.findOne({ where: { salaId: jogo.salaId, usuarioId } });
+    if (!membroDaSala) throw new ForbiddenException('Você não é membro dessa sala.');
+
     return partida;
+  }
+
+  async listarPorJogo(usuarioId: string, jogoId: string) {
+    const jogo = await this.jogoRepository.findOne({ where: { id: jogoId } });
+    if (!jogo) throw new NotFoundException('Jogo não encontrado.');
+    const membroDaSala = await this.salaMembros.findOne({ where: { salaId: jogo.salaId, usuarioId } });
+    if (!membroDaSala) throw new ForbiddenException('Você não é membro dessa sala.');
+    const membro = await this.jogoMembroRepository.findOne({
+      where: { jogoId, usuarioId },
+    });
+    if (!membro) throw new ForbiddenException('Você não é membro desse jogo.');
+    const partidas = await this.partidaRepository.find({
+      where: { jogoId },
+      order: { criadoEm: 'DESC' },
+      take: 100,
+    });
+    const resultados = partidas.length
+      ? await this.partidaResultadoRepository
+          .createQueryBuilder('resultado')
+          .where('resultado.partidaId IN (:...ids)', { ids: partidas.map((p) => p.id) })
+          .getMany()
+      : [];
+    return partidas.map((partida) => ({
+      ...partida,
+      resultados: resultados
+        .filter((resultado) => resultado.partidaId === partida.id)
+        .map((resultado) => ({
+          usuarioId: resultado.usuarioId,
+          vencedor: resultado.vencedor,
+          pontos: resultado.pontos,
+        })),
+    }));
+  }
+
+  async listarPendentes(usuarioId: string) {
+    const jogos = await this.jogoMembroRepository.find({ where: { usuarioId }, relations: ['jogo'] });
+    const salas = await this.salaMembros.find({ where: { usuarioId } });
+    const idsDasSalas = new Set(salas.map((sala) => sala.salaId));
+    const jogosDoUsuario = jogos.filter((jogo) => idsDasSalas.has(jogo.jogo.salaId));
+    if (!jogosDoUsuario.length) return [];
+    const partidas = await this.partidaRepository
+      .createQueryBuilder('partida')
+      .where('partida.jogoId IN (:...ids)', { ids: jogosDoUsuario.map((j) => j.jogoId) })
+      .andWhere('partida.status IN (:...statuses)', { statuses: ['pendente', 'contestada'] })
+      .orderBy('partida.criadoEm', 'DESC')
+      .take(100)
+      .getMany();
+    return partidas;
   }
 
   // Ver UC-16 e RF-03.10. Roda depois de qualquer partida ser confirmada
@@ -285,11 +345,15 @@ export class PartidaService {
   // Ver fase4_planejamento: "Queries de placar com índices (por jogo, por
   // season)". Em jogos sem_fim, soma tudo. Em jogos season, soma só a
   // season ativa (a que ainda não foi encerrada).
-  async placar(jogoId: string) {
+  async placar(usuarioId: string, jogoId: string) {
     const jogo = await this.jogoRepository.findOne({ where: { id: jogoId } });
     if (!jogo) {
       throw new NotFoundException('Jogo não encontrado.');
     }
+    const membro = await this.jogoMembroRepository.findOne({ where: { jogoId, usuarioId } });
+    if (!membro) throw new ForbiddenException('Você não é membro desse jogo.');
+    const membroDaSala = await this.salaMembros.findOne({ where: { salaId: jogo.salaId, usuarioId } });
+    if (!membroDaSala) throw new ForbiddenException('Você não é membro dessa sala.');
 
     const query = this.partidaResultadoRepository
       .createQueryBuilder('pr')
@@ -297,7 +361,8 @@ export class PartidaService {
       .select('pr.usuarioId', 'usuarioId')
       .addSelect('COUNT(*)', 'vitorias')
       .where('p.jogoId = :jogoId', { jogoId })
-      .andWhere('p.status = :status', { status: 'confirmada' })
+      // Pendentes aparecem no ranking imediatamente; contestadas e canceladas não contam.
+      .andWhere('p.status IN (:...statuses)', { statuses: ['pendente', 'confirmada'] })
       .andWhere('pr.vencedor = true');
 
     if (jogo.ciclo === 'season') {
@@ -319,6 +384,29 @@ export class PartidaService {
       usuarioId: linha.usuarioId,
       vitorias: parseInt(linha.vitorias, 10),
     }));
+  }
+
+  async placarSala(usuarioId: string, salaId: string) {
+    const membros = await this.salaMembros.find({ where: { salaId } });
+    if (!membros.some((membro) => membro.usuarioId === usuarioId)) {
+      throw new ForbiddenException('Você não é membro dessa sala.');
+    }
+    const linhas = await this.partidaResultadoRepository
+      .createQueryBuilder('resultado')
+      .innerJoin('resultado.partida', 'partida')
+      .innerJoin('partida.jogo', 'jogo')
+      .select('resultado.usuarioId', 'usuarioId')
+      .addSelect('COUNT(*)', 'vitorias')
+      .where('jogo.salaId = :salaId', { salaId })
+      .andWhere('resultado.usuarioId IN (:...ids)', { ids: membros.map((membro) => membro.usuarioId) })
+      .andWhere('resultado.vencedor = true')
+      .andWhere('partida.status IN (:...statuses)', { statuses: ['pendente', 'confirmada'] })
+      .groupBy('resultado.usuarioId')
+      .getRawMany<{ usuarioId: string; vitorias: string }>();
+    return membros.map((membro) => ({
+      usuarioId: membro.usuarioId,
+      vitorias: Number(linhas.find((linha) => linha.usuarioId === membro.usuarioId)?.vitorias ?? 0),
+    })).sort((a, b) => b.vitorias - a.vitorias);
   }
 
   // Chamado pelo SchedulerService a cada 5 minutos. Ver

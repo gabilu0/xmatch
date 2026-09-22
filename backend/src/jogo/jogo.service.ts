@@ -41,6 +41,7 @@ export class JogoService {
     if (sala.liderId !== liderId) {
       throw new ForbiddenException('Só o líder pode criar jogos na sala.');
     }
+    if (sala.encerrada) throw new ConflictException('Sala encerrada é somente leitura.');
 
     const membrosUnicos = [...new Set(dto.membros)];
 
@@ -132,6 +133,7 @@ export class JogoService {
     if (!jogo) {
       throw new NotFoundException('Jogo não encontrado.');
     }
+    if (jogo.arquivado) throw new ConflictException('Jogo arquivado é somente leitura.');
 
     const sala = await this.salaRepository.findOne({
       where: { id: jogo.salaId },
@@ -141,6 +143,7 @@ export class JogoService {
         'Só o líder da sala pode adicionar membros ao jogo.',
       );
     }
+    if (sala.encerrada) throw new ConflictException('Sala encerrada é somente leitura.');
 
     const membroDaSala = await this.salaMembroRepository.findOne({
       where: { salaId: jogo.salaId, usuarioId: dto.usuarioId },
@@ -176,7 +179,13 @@ export class JogoService {
   // atual". O líder atual (por vitórias) depende do módulo de Partida
   // (Sprint 4) — por enquanto retorna os jogos com seus membros, sem essa
   // informação ainda.
-  async listarPorSala(salaId: string) {
+  async listarPorSala(usuarioId: string, salaId: string) {
+    const membroDaSala = await this.salaMembroRepository.findOne({
+      where: { salaId, usuarioId },
+    });
+    if (!membroDaSala) {
+      throw new ForbiddenException('Você não é membro dessa sala.');
+    }
     const jogos = await this.jogoRepository.find({
       where: { salaId },
       order: { criadoEm: 'DESC' },
@@ -193,5 +202,15 @@ export class JogoService {
         };
       }),
     );
+  }
+
+  async listarSeasons(usuarioId: string, jogoId: string) {
+    const jogo = await this.jogoRepository.findOne({ where: { id: jogoId } });
+    if (!jogo) throw new NotFoundException('Jogo não encontrado.');
+    const membroDaSala = await this.salaMembroRepository.findOne({ where: { salaId: jogo.salaId, usuarioId } });
+    if (!membroDaSala) throw new ForbiddenException('Você não é membro dessa sala.');
+    const membro = await this.jogoMembroRepository.findOne({ where: { jogoId, usuarioId } });
+    if (!membro) throw new ForbiddenException('Você não é membro desse jogo.');
+    return this.seasonRepository.find({ where: { jogoId }, order: { numero: 'DESC' } });
   }
 }

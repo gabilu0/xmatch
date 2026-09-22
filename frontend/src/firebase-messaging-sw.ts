@@ -11,31 +11,34 @@ declare const self: ServiceWorkerGlobalScope & {
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
-const firebaseApp = initializeApp({
+const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
-});
+};
 
-const messaging = getMessaging(firebaseApp);
+// O cache da PWA deve funcionar mesmo antes da configuração do Firebase no deploy.
+if (Object.values(firebaseConfig).every(Boolean)) {
+  const messaging = getMessaging(initializeApp(firebaseConfig));
 
-onBackgroundMessage(messaging, (payload) => {
-  const titulo = payload.notification?.title ?? 'xMatch';
-  const opcoes: NotificationOptions = {
-    body: payload.notification?.body,
-    icon: payload.notification?.icon ?? '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    data: {
-      url: payload.fcmOptions?.link ?? '/',
-      ...payload.data,
-    },
-  };
+  onBackgroundMessage(messaging, (payload) => {
+    const titulo = payload.data?.title ?? payload.notification?.title ?? 'xMatch';
+    const opcoes: NotificationOptions = {
+      body: payload.data?.body ?? payload.notification?.body,
+      icon: payload.notification?.icon ?? '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: {
+        ...payload.data,
+        url: payload.data?.url ?? payload.fcmOptions?.link ?? '/',
+      },
+    };
 
-  void self.registration.showNotification(titulo, opcoes);
-});
+    void self.registration.showNotification(titulo, opcoes);
+  });
+}
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();

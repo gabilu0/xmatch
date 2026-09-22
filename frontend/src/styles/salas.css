@@ -1,0 +1,55 @@
+.salas-page {
+  width: min(100%, 56rem);
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+.salas-page__header, .salas-page__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.salas-page h1 { margin: 0; font-size: clamp(2rem, 6vw, 3rem); }
+.salas-page__actions { margin: 2rem 0; }
+.salas-page__actions p, .salas-page__empty p { color: #94a3b8; line-height: 1.5; }
+.salas-page__actions .button { flex-shrink: 0; }
+
+.form-sala {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 1.25rem;
+  background: #1e293b;
+}
+
+.form-sala label { font-weight: 700; }
+.form-sala input {
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid #475569;
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  color: #e5eef8;
+  background: #0f172a;
+}
+.form-sala .button { justify-self: start; }
+.salas-page__empty { border: 1px dashed #475569; border-radius: 16px; padding: 2rem; text-align: center; }
+.salas-page__empty h2 { margin: 0; }
+.salas-page__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.sala-card { display: flex; align-items: center; gap: 1rem; min-width: 0; border: 1px solid #334155; border-radius: 16px; padding: 1rem; background: #1e293b; }
+.sala-card__avatar { display: grid; width: 3.5rem; height: 3.5rem; flex: 0 0 3.5rem; overflow: hidden; place-items: center; border-radius: 12px; color: #082f49; background: #7dd3fc; font-weight: 800; }
+.sala-card__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sala-card__text { min-width: 0; }
+.sala-card__text h2 { overflow-wrap: anywhere; margin: 0 0 0.35rem; font-size: 1.1rem; }
+.sala-card__text a { color: #e5eef8; text-decoration: none; }
+.sala-card__text a:hover { color: #7dd3fc; text-decoration: underline; }
+.sala-card__text p { margin: 0; color: #94a3b8; font-size: 0.85rem; }
+
+@media (max-width: 500px) {
+  .salas-page__actions { align-items: stretch; flex-direction: column; }
+  .salas-page__actions p { margin: 0; }
+}
