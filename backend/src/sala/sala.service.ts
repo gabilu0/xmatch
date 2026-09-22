@@ -9,6 +9,8 @@ import { Repository } from 'typeorm';
 import { Sala } from './entities/sala.entity';
 import { SalaMembro } from './entities/sala-membro.entity';
 import { Convite } from './entities/convite.entity';
+import { Jogo } from '../jogo/entities/jogo.entity';
+import { JogoMembro } from '../jogo/entities/jogo-membro.entity';
 import { CriarSalaDto } from './dto/criar-sala.dto';
 import { EntrarSalaDto } from './dto/entrar-sala.dto';
 import { TrocaLiderDto } from './dto/troca-lider.dto';
@@ -23,6 +25,8 @@ export class SalaService {
     private readonly salaMembroRepository: Repository<SalaMembro>,
     @InjectRepository(Convite)
     private readonly conviteRepository: Repository<Convite>,
+    @InjectRepository(Jogo)
+    private readonly jogoRepository: Repository<Jogo>,
     private readonly notificacaoService: NotificacaoService,
   ) {}
 
@@ -153,8 +157,7 @@ export class SalaService {
   }
 
   // Ver UC-07. Só o líder expulsa, e não pode se auto-expulsar.
-  // NOTA DE ESCOPO: a UC-07 também prevê remover o membro dos jogos da
-  // sala — isso fica pendente até o Módulo Jogo existir (Sprint 3).
+  // UC-07: remover também de todos os jogos da sala.
   async expulsar(liderId: string, salaId: string, usuarioAlvoId: string) {
     const sala = await this.salaRepository.findOne({ where: { id: salaId } });
     if (!sala) {
@@ -175,7 +178,7 @@ export class SalaService {
       throw new NotFoundException('Esse usuário não é membro dessa sala.');
     }
 
-    await this.salaMembroRepository.remove(membro);
+    await this.removerMembroEJogos(salaId, membro);
     return { removido: true };
   }
 
@@ -199,8 +202,22 @@ export class SalaService {
       throw new NotFoundException('Você não é membro dessa sala.');
     }
 
-    await this.salaMembroRepository.remove(membro);
+    await this.removerMembroEJogos(salaId, membro);
     return { removido: true };
+  }
+
+  private async removerMembroEJogos(salaId: string, membro: SalaMembro) {
+    const jogos = await this.jogoRepository.find({ where: { salaId } });
+    await this.salaMembroRepository.manager.transaction(async (manager) => {
+      for (const jogo of jogos) {
+        await manager.delete(JogoMembro, { jogoId: jogo.id, usuarioId: membro.usuarioId });
+        const restantes = await manager.count(JogoMembro, { where: { jogoId: jogo.id } });
+        if (restantes < 2) {
+          await manager.update(Jogo, { id: jogo.id }, { arquivado: true });
+        }
+      }
+      await manager.delete(SalaMembro, { id: membro.id });
+    });
   }
 
   // Ver UC-10 e RF-02.9/RF-02.10. Encerrar ≠ excluir: os dados continuam

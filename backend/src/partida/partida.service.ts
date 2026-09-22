@@ -51,6 +51,8 @@ export class PartidaService {
     if (jogo.sala.encerrada || jogo.arquivado) {
       throw new ConflictException('Este jogo não aceita novas partidas.');
     }
+    const membroDaSala = await this.salaMembros.findOne({ where: { salaId: jogo.salaId, usuarioId: registradoPorId } });
+    if (!membroDaSala) throw new ForbiddenException('Você não é membro dessa sala.');
 
     const membrosDoJogo = await this.jogoMembroRepository.find({
       where: { jogoId },
@@ -235,10 +237,18 @@ export class PartidaService {
       throw new ForbiddenException('Você não é membro desse jogo.');
     }
 
+    const jogo = await this.jogoRepository.findOne({ where: { id: partida.jogoId } });
+    const membroDaSala = jogo && await this.salaMembros.findOne({ where: { salaId: jogo.salaId, usuarioId } });
+    if (!membroDaSala) throw new ForbiddenException('Você não é membro dessa sala.');
+
     return partida;
   }
 
   async listarPorJogo(usuarioId: string, jogoId: string) {
+    const jogo = await this.jogoRepository.findOne({ where: { id: jogoId } });
+    if (!jogo) throw new NotFoundException('Jogo não encontrado.');
+    const membroDaSala = await this.salaMembros.findOne({ where: { salaId: jogo.salaId, usuarioId } });
+    if (!membroDaSala) throw new ForbiddenException('Você não é membro dessa sala.');
     const membro = await this.jogoMembroRepository.findOne({
       where: { jogoId, usuarioId },
     });
@@ -267,11 +277,14 @@ export class PartidaService {
   }
 
   async listarPendentes(usuarioId: string) {
-    const jogos = await this.jogoMembroRepository.find({ where: { usuarioId } });
-    if (!jogos.length) return [];
+    const jogos = await this.jogoMembroRepository.find({ where: { usuarioId }, relations: ['jogo'] });
+    const salas = await this.salaMembros.find({ where: { usuarioId } });
+    const idsDasSalas = new Set(salas.map((sala) => sala.salaId));
+    const jogosDoUsuario = jogos.filter((jogo) => idsDasSalas.has(jogo.jogo.salaId));
+    if (!jogosDoUsuario.length) return [];
     const partidas = await this.partidaRepository
       .createQueryBuilder('partida')
-      .where('partida.jogoId IN (:...ids)', { ids: jogos.map((j) => j.jogoId) })
+      .where('partida.jogoId IN (:...ids)', { ids: jogosDoUsuario.map((j) => j.jogoId) })
       .andWhere('partida.status IN (:...statuses)', { statuses: ['pendente', 'contestada'] })
       .orderBy('partida.criadoEm', 'DESC')
       .take(100)
@@ -339,6 +352,8 @@ export class PartidaService {
     }
     const membro = await this.jogoMembroRepository.findOne({ where: { jogoId, usuarioId } });
     if (!membro) throw new ForbiddenException('Você não é membro desse jogo.');
+    const membroDaSala = await this.salaMembros.findOne({ where: { salaId: jogo.salaId, usuarioId } });
+    if (!membroDaSala) throw new ForbiddenException('Você não é membro dessa sala.');
 
     const query = this.partidaResultadoRepository
       .createQueryBuilder('pr')

@@ -3,7 +3,7 @@ import { PartidaService } from './partida.service';
 
 describe('Placar e partidas', () => {
   const membrosJogo = { findOne: jest.fn() };
-  const membrosSala = { find: jest.fn() };
+  const membrosSala = { find: jest.fn(), findOne: jest.fn() };
   const jogos = { findOne: jest.fn() };
   const query = {
     innerJoin: jest.fn(), select: jest.fn(), addSelect: jest.fn(), where: jest.fn(),
@@ -20,7 +20,8 @@ describe('Placar e partidas', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jogos.findOne.mockResolvedValue({ id: 'jogo-1', ciclo: 'sem_fim' });
+    jogos.findOne.mockResolvedValue({ id: 'jogo-1', salaId: 'sala-1', ciclo: 'sem_fim' });
+    membrosSala.findOne.mockResolvedValue({ usuarioId: 'ana' });
     query.getRawMany.mockResolvedValue([{ usuarioId: 'ana', vitorias: '2' }]);
   });
 
@@ -39,5 +40,12 @@ describe('Placar e partidas', () => {
   it('protege o ranking de sala contra não membros', async () => {
     membrosSala.find.mockResolvedValue([{ usuarioId: 'ana' }]);
     await expect(service.placarSala('intruso', 'sala-1')).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('bloqueia placar para ex membro de uma sala', async () => {
+    membrosJogo.findOne.mockResolvedValue({ usuarioId: 'ana' });
+    membrosSala.findOne.mockResolvedValue(null);
+    await expect(service.placar('ana', 'jogo-1')).rejects.toBeInstanceOf(ForbiddenException);
+    expect(resultados.createQueryBuilder).not.toHaveBeenCalled();
   });
 });
