@@ -22,6 +22,10 @@ const firebaseConfig = {
 let messagingPromise: Promise<Messaging | null> | null = null;
 
 async function obterMessaging(): Promise<Messaging | null> {
+  if (!Object.values(firebaseConfig).every(Boolean)) {
+    return null;
+  }
+
   if (!messagingPromise) {
     messagingPromise = (async () => {
       if (!(await isSupported())) {
@@ -42,7 +46,7 @@ async function obterMessaging(): Promise<Messaging | null> {
  * interação do usuário para solicitar permissão de notificações.
  */
 export async function registrarDispositivoParaNotificacoes(): Promise<boolean> {
-  if (!getJwt() || !('Notification' in window) || !('serviceWorker' in navigator)) {
+  if (!getJwt() || !import.meta.env.VITE_FIREBASE_VAPID_KEY || !('Notification' in window) || !('serviceWorker' in navigator)) {
     return false;
   }
 
