@@ -1,9 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { limparToken } from '../services/api';
 import { obterMensagemErro } from '../services/auth';
 import { atualizarApelido, enviarFoto, obterPerfil, type Perfil } from '../services/perfil';
 import '../styles/app-pages.css';
 
 export function PerfilPage() {
+  const navigate = useNavigate();
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [apelido, setApelido] = useState('');
   const [carregando, setCarregando] = useState(true);
@@ -39,10 +42,18 @@ export function PerfilPage() {
     finally { setSalvando(false); }
   }
 
+  function sair() {
+    limparToken();
+    navigate('/login', { replace: true });
+  }
+
   return <main className="app-page"><header className="app-page__heading"><p className="eyebrow">xMatch</p><h1>Perfil</h1></header>
     {carregando && <p role="status">Carregando perfil...</p>}
     {erro && <p className="form-error" role="alert">{erro}</p>}
     {mensagem && <p className="form-message" role="status">{mensagem}</p>}
     {perfil && <section className="panel"><div className="profile-summary">{perfil.fotoUrl ? <img src={perfil.fotoUrl} alt="Sua foto de perfil" /> : <span aria-hidden="true">{perfil.apelido.slice(0, 2).toUpperCase()}</span>}<h2>{perfil.apelido}</h2></div><form className="app-form" onSubmit={enviar}><label>Apelido<input value={apelido} minLength={3} maxLength={30} required onChange={(evento) => setApelido(evento.target.value)} /></label><button className="button button--primary" type="submit" disabled={salvando || apelido.trim() === perfil.apelido}>{salvando ? 'Salvando...' : 'Salvar apelido'}</button></form><form className="app-form photo-form" onSubmit={enviarImagem}><label>Foto de perfil (PNG, JPEG ou WebP; até 2 MB)<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(evento) => setFoto(evento.target.files?.[0] ?? null)} /></label><button className="button button--ghost" type="submit" disabled={salvando || !foto}>{salvando ? 'Enviando...' : 'Enviar foto'}</button></form></section>}
+    <div className="profile-logout">
+      <button className="button button--ghost" type="button" onClick={sair}>Sair da conta</button>
+    </div>
   </main>;
 }

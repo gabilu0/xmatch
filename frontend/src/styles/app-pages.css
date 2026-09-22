@@ -27,4 +27,6 @@
 .profile-summary h2 { margin: 0; }
 .profile-summary img, .profile-summary span { display: grid; width: 4.5rem; height: 4.5rem; place-items: center; border-radius: 50%; object-fit: cover; background: #38bdf8; color: #082f49; font-weight: 800; }
 .photo-form { margin-top: 1.5rem; border-top: 1px solid #334155; padding-top: 1.5rem; }
+.profile-logout { margin: 2rem 0 0; padding-top: 1.5rem; border-top: 1px solid #334155; }
+.profile-logout .button { width: 100%; }
 .management-form { margin-top: 1.5rem; border-top: 1px solid #334155; padding-top: 1.5rem; }
