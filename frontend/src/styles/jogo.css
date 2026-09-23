@@ -169,15 +169,16 @@
 
 .game-ranking__crown {
   position: absolute;
-  top: 50%;
-  right: -0.8rem;
+  top: 0;
+  right: 0;
   display: grid;
-  width: 1.65rem;
-  height: 1.65rem;
+  width: 1.9rem;
+  height: 1.9rem;
   place-items: center;
-  transform: translateY(-50%);
+  transform: translate(42%, -58%) rotate(22deg);
   color: #fbbf24;
-  background: #1e293b;
+  background: transparent;
+  filter: drop-shadow(0 3px 4px rgb(2 6 23 / 65%));
 }
 
 .game-ranking__crown svg {
@@ -328,6 +329,7 @@
 .game-modal__list p { color: #cbd5e1; line-height: 1.5; }
 .game-modal__form { margin-top: 1.25rem; }
 .game-modal__form .button { width: 100%; justify-self: stretch; }
+.game-modal__more { width: 100%; margin-top: 1rem; }
 
 .game-action-backdrop {
   position: fixed;

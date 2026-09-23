@@ -64,6 +64,7 @@ export function JogoPage() {
   const [modalAtivo, setModalAtivo] = useState<ModalJogo>(null);
   const [estadoConfirmacao, setEstadoConfirmacao] = useState<EstadoConfirmacao>(null);
   const [tituloConfirmacao, setTituloConfirmacao] = useState('');
+  const [limiteHistorico, setLimiteHistorico] = useState(5);
   const [carregando, setCarregando] = useState(true);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
@@ -168,6 +169,7 @@ export function JogoPage() {
   function abrirModal(modal: Exclude<ModalJogo, null>) {
     setErro('');
     setMensagem('');
+    if (modal === 'historico') setLimiteHistorico(5);
     setModalAtivo(modal);
   }
 
@@ -220,6 +222,9 @@ export function JogoPage() {
     .sort((a, b) => b.vitorias - a.vitorias || nome(a.id).localeCompare(nome(b.id), 'pt-BR'));
   const pendentes = partidas.filter(
     (partida) => partida.status === 'pendente' || partida.status === 'contestada',
+  );
+  const historico = [...partidas].sort(
+    (a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime(),
   );
   const outros = jogo.membros.filter((id) => id !== perfil.id);
   const seasonAtiva = seasons.find((season) => !season.encerradaEm);
@@ -468,19 +473,30 @@ export function JogoPage() {
             )}
 
             {modalAtivo === 'historico' && (
-              partidas.length === 0 ? (
+              historico.length === 0 ? (
                 <p>Nenhuma partida registrada.</p>
               ) : (
-                <ul className="item-list game-modal__list">
-                  {partidas.map((partida) => (
-                    <li key={partida.id}>
-                      <p>
-                        {nome(partida.registradoPor)} · {partida.status} ·{' '}
-                        {new Date(partida.criadoEm).toLocaleString('pt-BR')}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="item-list game-modal__list">
+                    {historico.slice(0, limiteHistorico).map((partida) => (
+                      <li key={partida.id}>
+                        <p>
+                          {nome(partida.registradoPor)} · {partida.status} ·{' '}
+                          {new Date(partida.criadoEm).toLocaleString('pt-BR')}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                  {limiteHistorico < historico.length && (
+                    <button
+                      className="button button--ghost game-modal__more"
+                      type="button"
+                      onClick={() => setLimiteHistorico((limite) => limite + 5)}
+                    >
+                      Mostrar mais
+                    </button>
+                  )}
+                </>
               )
             )}
 
