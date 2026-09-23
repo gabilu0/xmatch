@@ -16,7 +16,7 @@ import { SalaMembro } from '../sala/entities/sala-membro.entity';
 import { RegistrarVitoriaDto } from './dto/registrar-vitoria.dto';
 import { NotificacaoService } from '../notificacao/notificacao.service';
 
-const HORAS_24_EM_MS = 24 * 60 * 60 * 1000;
+const PRAZO_CONTESTACAO_EM_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class PartidaService {
@@ -38,7 +38,7 @@ export class PartidaService {
 
   // Ver UC-13 (Duelo), UC-14 (Competição e Rei do Pedaço), RF-04.1.
   // Vitória entra direto no placar, em estado 'pendente' (RF-04.3) — não é
-  // um estado de aprovação prévia, é a janela de 24h pra contestação.
+  // um estado de aprovação prévia, é a janela de 1h para contestação.
   async registrarVitoria(
     registradoPorId: string,
     jogoId: string,
@@ -76,12 +76,31 @@ export class PartidaService {
         })
       : null;
 
+    // Decisão de produto de 23/09/2026: quando uma vitória pendente ou
+    // contestada pode definir o campeão, a season fica bloqueada até a
+    // resolução. Isso impede registrar pontos além da meta enquanto ainda
+    // existe uma partida capaz de encerrar a temporada.
+    if (jogo.ciclo === 'season') {
+      if (!seasonAtiva || !jogo.metaVitorias) {
+        throw new ConflictException('Não há uma temporada ativa para este jogo.');
+      }
+      const temporadaBloqueada = await this.temCampeaoPotencial(
+        seasonAtiva.id,
+        jogo.metaVitorias,
+      );
+      if (temporadaBloqueada) {
+        throw new ConflictException(
+          'A temporada aguarda a resolução da vitória que pode definir o campeão.',
+        );
+      }
+    }
+
     const partida = this.partidaRepository.create({
       jogoId,
       seasonId: seasonAtiva?.id ?? null,
       registradoPor: registradoPorId,
       status: 'pendente',
-      expiraEm: new Date(Date.now() + HORAS_24_EM_MS),
+      expiraEm: new Date(Date.now() + PRAZO_CONTESTACAO_EM_MS),
     });
     await this.partidaRepository.save(partida);
 
@@ -165,7 +184,14 @@ export class PartidaService {
       );
     }
 
+    if (partida.registradoPor === usuarioId) {
+      throw new ForbiddenException(
+        'Você não pode contestar a vitória que registrou.',
+      );
+    }
+
     partida.status = 'contestada';
+    partida.expiraEm = new Date(Date.now() + PRAZO_CONTESTACAO_EM_MS);
     await this.partidaRepository.save(partida);
 
     await this.notificacaoService.criar(
@@ -186,6 +212,8 @@ export class PartidaService {
         'Só é possível confirmar manualmente uma partida contestada.',
       );
     }
+
+    this.validarResolucaoPorOutroJogador(usuarioId, partida);
 
     partida.status = 'confirmada';
     await this.partidaRepository.save(partida);
@@ -210,6 +238,8 @@ export class PartidaService {
       );
     }
 
+    this.validarResolucaoPorOutroJogador(usuarioId, partida);
+
     partida.status = 'cancelada';
     await this.partidaRepository.save(partida);
 
@@ -220,6 +250,36 @@ export class PartidaService {
     );
 
     return partida;
+  }
+
+  private validarResolucaoPorOutroJogador(
+    usuarioId: string,
+    partida: Partida,
+  ) {
+    if (partida.registradoPor === usuarioId) {
+      throw new ForbiddenException(
+        'Você não pode confirmar ou cancelar a própria vitória contestada.',
+      );
+    }
+  }
+
+  private async temCampeaoPotencial(seasonId: string, metaVitorias: number) {
+    const contagem = await this.partidaResultadoRepository
+      .createQueryBuilder('pr')
+      .innerJoin('pr.partida', 'p')
+      .select('pr.usuarioId', 'usuarioId')
+      .addSelect('COUNT(*)', 'total')
+      .where('p.seasonId = :seasonId', { seasonId })
+      .andWhere('p.status IN (:...statuses)', {
+        statuses: ['pendente', 'contestada', 'confirmada'],
+      })
+      .andWhere('pr.vencedor = true')
+      .groupBy('pr.usuarioId')
+      .getRawMany<{ usuarioId: string; total: string }>();
+
+    return contagem.some(
+      (linha) => Number(linha.total) >= metaVitorias,
+    );
   }
 
   private async buscarEValidarMembro(usuarioId: string, partidaId: string) {
