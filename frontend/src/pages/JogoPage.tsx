@@ -19,6 +19,7 @@ import '../styles/app-pages.css';
 import '../styles/jogo.css';
 
 type ModalJogo = 'pendencias' | 'historico' | 'perdedor' | null;
+type EstadoConfirmacao = 'carregando' | 'sucesso' | null;
 
 function IconeSino() {
   return (
@@ -61,6 +62,8 @@ export function JogoPage() {
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [perdedorId, setPerdedorId] = useState('');
   const [modalAtivo, setModalAtivo] = useState<ModalJogo>(null);
+  const [estadoConfirmacao, setEstadoConfirmacao] = useState<EstadoConfirmacao>(null);
+  const [tituloConfirmacao, setTituloConfirmacao] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
@@ -115,29 +118,47 @@ export function JogoPage() {
   }, [salaId, jogoId]);
 
   useEffect(() => {
-    if (!modalAtivo) return;
+    if (!modalAtivo && !estadoConfirmacao) return;
 
     const overflowAnterior = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     function fecharComEscape(evento: KeyboardEvent) {
-      if (evento.key === 'Escape') setModalAtivo(null);
+      if (evento.key === 'Escape' && estadoConfirmacao !== 'carregando') {
+        setModalAtivo(null);
+        setEstadoConfirmacao(null);
+      }
     }
     window.addEventListener('keydown', fecharComEscape);
     return () => {
       document.body.style.overflow = overflowAnterior;
       window.removeEventListener('keydown', fecharComEscape);
     };
-  }, [modalAtivo]);
+  }, [modalAtivo, estadoConfirmacao]);
 
-  async function executar(acao: () => Promise<void>, sucesso: string) {
+  async function executar(
+    acao: () => Promise<void>,
+    sucesso: string,
+    confirmacao?: { carregando: string; titulo: string },
+  ) {
     setOcupado(true);
     setErro('');
     setMensagem('');
+    if (confirmacao) {
+      setModalAtivo(null);
+      setTituloConfirmacao(confirmacao.carregando);
+      setEstadoConfirmacao('carregando');
+    }
     try {
       await acao();
       await atualizar();
-      setMensagem(sucesso);
+      if (confirmacao) {
+        setTituloConfirmacao(confirmacao.titulo);
+        setEstadoConfirmacao('sucesso');
+      } else {
+        setMensagem(sucesso);
+      }
     } catch (falha) {
+      setEstadoConfirmacao(null);
       setErro(obterMensagemErro(falha, 'Não foi possível concluir a ação.'));
     } finally {
       setOcupado(false);
@@ -159,6 +180,7 @@ export function JogoPage() {
     executar(
       () => registrarVitoria(jogoId),
       'Vitória registrada. Os outros jogadores têm 1 hora para contestar.',
+      { carregando: 'Registrando vitória...', titulo: 'Vitória registrada' },
     );
   }
 
@@ -166,9 +188,11 @@ export function JogoPage() {
     evento.preventDefault();
     executar(async () => {
       await registrarVitoria(jogoId, perdedorId);
-      setModalAtivo(null);
       setPerdedorId('');
-    }, 'Vitória registrada. Os outros jogadores têm 1 hora para contestar.');
+    }, 'Vitória registrada. Os outros jogadores têm 1 hora para contestar.', {
+      carregando: 'Registrando vitória...',
+      titulo: 'Vitória registrada',
+    });
   }
 
   const nome = (id: string) => (
@@ -414,6 +438,7 @@ export function JogoPage() {
                               onClick={() => executar(
                                 () => resolverPartida(partida.id, 'confirmar'),
                                 'Vitória confirmada.',
+                                { carregando: 'Confirmando vitória...', titulo: 'Vitória confirmada' },
                               )}
                             >
                               Confirmar vitória
@@ -482,6 +507,42 @@ export function JogoPage() {
               </form>
             )}
           </section>
+        </div>
+      )}
+
+      {estadoConfirmacao && (
+        <div
+          className={`game-action-backdrop game-action-backdrop--${estadoConfirmacao}`}
+          onClick={(evento) => {
+            if (estadoConfirmacao === 'sucesso' && evento.target === evento.currentTarget) {
+              setEstadoConfirmacao(null);
+            }
+          }}
+        >
+          {estadoConfirmacao === 'carregando' ? (
+            <div className="game-action-loading" role="status" aria-live="polite">
+              <span className="game-action-loading__spinner" aria-hidden="true" />
+              <strong>{tituloConfirmacao}</strong>
+            </div>
+          ) : (
+            <section
+              className="game-action-success"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="game-action-title"
+            >
+              <span className="game-action-success__icon" aria-hidden="true">✓</span>
+              <h2 id="game-action-title">{tituloConfirmacao}</h2>
+              <p>A atualização já aparece na tela do jogo.</p>
+              <button
+                className="button button--primary"
+                type="button"
+                onClick={() => setEstadoConfirmacao(null)}
+              >
+                Continuar
+              </button>
+            </section>
+          )}
         </div>
       )}
     </main>
