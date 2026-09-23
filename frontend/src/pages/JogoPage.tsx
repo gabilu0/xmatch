@@ -61,7 +61,10 @@ export function JogoPage() {
 
   function enviarVitoria(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    executar(() => registrarVitoria(jogoId, jogo?.modo === 'rei_do_pedaco' ? perdedorId : undefined), 'Vitória registrada. A partida pode ser contestada durante 24 horas.');
+    executar(
+      () => registrarVitoria(jogoId, jogo?.modo === 'rei_do_pedaco' ? perdedorId : undefined),
+      'Vitória registrada. Os outros jogadores têm 1 hora para contestar. Sem contestação, ela será confirmada automaticamente.',
+    );
   }
 
   const nome = (id: string) => sala?.membros.find((membro) => membro.id === id)?.apelido ?? 'Participante';
@@ -72,17 +75,233 @@ export function JogoPage() {
   const pendentes = partidas.filter((partida) => partida.status === 'pendente' || partida.status === 'contestada');
   const outros = jogo.membros.filter((id) => id !== perfil.id);
   const disponiveis = sala.membros.filter((membro) => !jogo.membros.includes(membro.id));
+  const seasonAtiva = seasons.find((season) => !season.encerradaEm);
+  const vitoriasPotenciais = new Map(
+    jogadores.map((jogador) => [jogador.id, jogador.vitorias]),
+  );
+  if (seasonAtiva) {
+    partidas
+      .filter((partida) => partida.seasonId === seasonAtiva.id && partida.status === 'contestada')
+      .flatMap((partida) => partida.resultados ?? [])
+      .filter((resultado) => resultado.vencedor)
+      .forEach((resultado) => {
+        vitoriasPotenciais.set(
+          resultado.usuarioId,
+          (vitoriasPotenciais.get(resultado.usuarioId) ?? 0) + 1,
+        );
+      });
+  }
+  const metaVitorias = jogo.metaVitorias;
+  const temporadaBloqueada = jogo.ciclo === 'season'
+    && metaVitorias !== null
+    && [...vitoriasPotenciais.values()].some((total) => total >= metaVitorias);
 
-  return <main className="app-page">
-    <Link to={`/salas/${salaId}`}>← {sala.nome}</Link>
-    <header className="app-page__heading"><p className="eyebrow">{jogo.modo === 'duelo' ? 'Duelo' : jogo.modo === 'competicao' ? 'Competição' : 'Rei do Pedaço'}</p><h1>{jogo.nome}</h1><p className="subtle">{jogo.ciclo === 'season' ? `Temporada · meta de ${jogo.metaVitorias} vitórias` : 'Jogo sem fim'}</p></header>
-    {erro && <p className="form-error" role="alert">{erro}</p>}
-    {mensagem && <p className="form-message" role="status">{mensagem}</p>}
-    <section className="panel"><h2>Ranking</h2><p className="subtle">Vitórias pendentes ou confirmadas {jogo.ciclo === 'season' ? 'nesta temporada' : 'neste jogo'}.</p><ol className="rank-list">{jogadores.map((jogador) => <li key={jogador.id}>{nome(jogador.id)}<strong>{jogador.vitorias}</strong></li>)}</ol></section>
-    {!sala.encerrada && !jogo.arquivado && jogo.membros.includes(perfil.id) && <section className="panel"><h2>Registrar vitória</h2><p>Você será marcado como vencedor.</p><form className="app-form" onSubmit={enviarVitoria}>{jogo.modo === 'rei_do_pedaco' && <label>Quem perdeu?<select required value={perdedorId} onChange={(evento) => setPerdedorId(evento.target.value)}><option value="">Selecione</option>{outros.map((id) => <option key={id} value={id}>{nome(id)}</option>)}</select></label>}<button type="submit" className="button button--primary" disabled={ocupado}>{ocupado ? 'Registrando...' : 'Registrar minha vitória'}</button></form></section>}
-    {!sala.encerrada && !jogo.arquivado && sala.liderId === perfil.id && disponiveis.length > 0 && <section className="panel"><h2>Adicionar participante</h2><div className="app-form"><label>Membro da sala<select value={novoMembro} onChange={(evento) => setNovoMembro(evento.target.value)}><option value="">Selecione</option>{disponiveis.map((membro) => <option value={membro.id} key={membro.id}>{membro.apelido}</option>)}</select></label><button className="button button--ghost" type="button" disabled={ocupado || !novoMembro} onClick={() => executar(async () => { await adicionarMembroJogo(jogoId, novoMembro); setNovoMembro(''); }, 'Participante adicionado ao jogo.')}>Adicionar</button></div></section>}
-    <section className="panel"><h2>Pendentes ({pendentes.length})</h2>{pendentes.length === 0 ? <p>Nenhuma partida pendente.</p> : <ul className="item-list">{pendentes.map((partida) => <li key={partida.id}><p>Vitória de {nome(partida.registradoPor)} · {partida.status === 'contestada' ? 'contestada' : 'aguardando contestação até ' + new Date(partida.expiraEm).toLocaleString('pt-BR')}</p>{partida.status === 'pendente' && partida.registradoPor !== perfil.id && <button className="button button--ghost" type="button" disabled={ocupado} onClick={() => executar(() => resolverPartida(partida.id, 'contestar'), 'Partida contestada.')}>Contestar</button>}{partida.status === 'contestada' && <div className="action-row"><button className="button button--ghost" type="button" disabled={ocupado} onClick={() => executar(() => resolverPartida(partida.id, 'confirmar'), 'Partida confirmada.')}>Confirmar</button><button className="button button--ghost" type="button" disabled={ocupado} onClick={() => executar(() => resolverPartida(partida.id, 'cancelar'), 'Partida cancelada.')}>Cancelar</button></div>}</li>)}</ul>}</section>
-    {jogo.ciclo === 'season' && <section className="panel"><h2>Temporadas</h2><ul className="item-list">{seasons.map((season) => <li key={season.id}><p>Temporada {season.numero} · {season.encerradaEm ? `campeão: ${nome(season.campeaoId ?? '')}` : 'em andamento'}</p></li>)}</ul></section>}
-    <section className="panel"><h2>Histórico de partidas</h2>{partidas.length === 0 ? <p>Nenhuma partida registrada.</p> : <ul className="item-list">{partidas.map((partida) => <li key={partida.id}><p>{nome(partida.registradoPor)} · {partida.status} · {new Date(partida.criadoEm).toLocaleString('pt-BR')}</p></li>)}</ul>}</section>
-  </main>;
+  return (
+    <main className="app-page">
+      <Link to={`/salas/${salaId}`}>← {sala.nome}</Link>
+      <header className="app-page__heading">
+        <p className="eyebrow">
+          {jogo.modo === 'duelo' ? 'Duelo' : jogo.modo === 'competicao' ? 'Competição' : 'Rei do Pedaço'}
+        </p>
+        <h1>{jogo.nome}</h1>
+        <p className="subtle">
+          {jogo.ciclo === 'season' ? `Temporada · meta de ${jogo.metaVitorias} vitórias` : 'Jogo sem fim'}
+        </p>
+      </header>
+
+      {erro && <p className="form-error" role="alert">{erro}</p>}
+      {mensagem && <p className="form-message" role="status">{mensagem}</p>}
+
+      <section className="panel">
+        <h2>Ranking</h2>
+        <p className="subtle">
+          Vitórias pendentes ou confirmadas {jogo.ciclo === 'season' ? 'nesta temporada' : 'neste jogo'}.
+        </p>
+        <ol className="rank-list">
+          {jogadores.map((jogador) => (
+            <li key={jogador.id}>
+              {nome(jogador.id)}
+              <strong>{jogador.vitorias}</strong>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {!sala.encerrada && !jogo.arquivado && jogo.membros.includes(perfil.id) && (
+        <section className="panel">
+          <h2>Registrar vitória</h2>
+          {temporadaBloqueada ? (
+            <p role="status">
+              A temporada está aguardando a resolução da vitória que pode definir o campeão.
+              Novas vitórias serão liberadas se ela for cancelada ou na próxima temporada se for confirmada.
+            </p>
+          ) : (
+            <>
+              <p>Você será marcado como vencedor.</p>
+              <form className="app-form" onSubmit={enviarVitoria}>
+                {jogo.modo === 'rei_do_pedaco' && (
+                  <label>
+                    Quem perdeu?
+                    <select
+                      required
+                      value={perdedorId}
+                      onChange={(evento) => setPerdedorId(evento.target.value)}
+                    >
+                      <option value="">Selecione</option>
+                      {outros.map((id) => <option key={id} value={id}>{nome(id)}</option>)}
+                    </select>
+                  </label>
+                )}
+                <button type="submit" className="button button--primary" disabled={ocupado}>
+                  {ocupado ? 'Registrando...' : 'Registrar minha vitória'}
+                </button>
+              </form>
+            </>
+          )}
+        </section>
+      )}
+
+      {!sala.encerrada && !jogo.arquivado && sala.liderId === perfil.id && disponiveis.length > 0 && (
+        <section className="panel">
+          <h2>Adicionar participante</h2>
+          <div className="app-form">
+            <label>
+              Membro da sala
+              <select value={novoMembro} onChange={(evento) => setNovoMembro(evento.target.value)}>
+                <option value="">Selecione</option>
+                {disponiveis.map((membro) => (
+                  <option value={membro.id} key={membro.id}>{membro.apelido}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="button button--ghost"
+              type="button"
+              disabled={ocupado || !novoMembro}
+              onClick={() => executar(async () => {
+                await adicionarMembroJogo(jogoId, novoMembro);
+                setNovoMembro('');
+              }, 'Participante adicionado ao jogo.')}
+            >
+              Adicionar
+            </button>
+          </div>
+        </section>
+      )}
+
+      <section className="panel">
+        <h2>Pendentes ({pendentes.length})</h2>
+        {pendentes.length === 0 ? (
+          <p>Nenhuma partida pendente.</p>
+        ) : (
+          <ul className="item-list">
+            {pendentes.map((partida) => {
+              const prazo = new Date(partida.expiraEm).toLocaleString('pt-BR');
+              const registradaPeloUsuario = partida.registradoPor === perfil.id;
+
+              return (
+                <li key={partida.id}>
+                  {partida.status === 'pendente' ? (
+                    <p>
+                      <strong>Vitória registrada por {nome(partida.registradoPor)}.</strong>{' '}
+                      Os outros jogadores podem contestar até {prazo}.
+                      Sem contestação, ela será confirmada automaticamente.
+                    </p>
+                  ) : (
+                    <p>
+                      <strong>Vitória de {nome(partida.registradoPor)} contestada.</strong>{' '}
+                      Outro jogador deve confirmar ou cancelar até {prazo}.
+                      Sem resolução, ela será cancelada automaticamente.
+                    </p>
+                  )}
+
+                  {partida.status === 'pendente' && !registradaPeloUsuario && (
+                    <button
+                      className="button button--ghost"
+                      type="button"
+                      disabled={ocupado}
+                      onClick={() => executar(
+                        () => resolverPartida(partida.id, 'contestar'),
+                        'Vitória contestada. Os outros jogadores, exceto quem registrou, têm 1 hora para confirmar ou cancelar.',
+                      )}
+                    >
+                      Contestar vitória
+                    </button>
+                  )}
+
+                  {partida.status === 'contestada' && !registradaPeloUsuario && (
+                    <div className="action-row">
+                      <button
+                        className="button button--ghost"
+                        type="button"
+                        disabled={ocupado}
+                        onClick={() => executar(
+                          () => resolverPartida(partida.id, 'confirmar'),
+                          'Vitória confirmada.',
+                        )}
+                      >
+                        Confirmar vitória
+                      </button>
+                      <button
+                        className="button button--ghost"
+                        type="button"
+                        disabled={ocupado}
+                        onClick={() => executar(
+                          () => resolverPartida(partida.id, 'cancelar'),
+                          'Vitória cancelada.',
+                        )}
+                      >
+                        Cancelar vitória
+                      </button>
+                    </div>
+                  )}
+
+                  {partida.status === 'contestada' && registradaPeloUsuario && (
+                    <p className="subtle">
+                      Você registrou esta vitória e não pode resolver a própria contestação.
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {jogo.ciclo === 'season' && (
+        <section className="panel">
+          <h2>Temporadas</h2>
+          <ul className="item-list">
+            {seasons.map((season) => (
+              <li key={season.id}>
+                <p>
+                  Temporada {season.numero} · {season.encerradaEm
+                    ? `campeão: ${nome(season.campeaoId ?? '')}`
+                    : 'em andamento'}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="panel">
+        <h2>Histórico de partidas</h2>
+        {partidas.length === 0 ? (
+          <p>Nenhuma partida registrada.</p>
+        ) : (
+          <ul className="item-list">
+            {partidas.map((partida) => (
+              <li key={partida.id}>
+                <p>
+                  {nome(partida.registradoPor)} · {partida.status} ·{' '}
+                  {new Date(partida.criadoEm).toLocaleString('pt-BR')}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
+  );
 }

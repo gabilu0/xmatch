@@ -27,6 +27,7 @@ export interface Placar {
 export interface Partida {
   id: string;
   jogoId: string;
+  seasonId: string | null;
   registradoPor: string;
   status: 'pendente' | 'contestada' | 'confirmada' | 'cancelada';
   expiraEm: string;
