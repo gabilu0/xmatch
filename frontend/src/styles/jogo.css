@@ -1,0 +1,378 @@
+.game-page {
+  position: relative;
+  display: grid;
+  width: min(100%, 42rem);
+  height: calc(100vh - 5rem - env(safe-area-inset-bottom));
+  height: calc(100dvh - 5rem - env(safe-area-inset-bottom));
+  grid-template-rows: auto auto auto minmax(7.5rem, 1fr) auto;
+  gap: clamp(0.6rem, 1.8vh, 1rem);
+  overflow: hidden;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: 0.8rem;
+}
+
+.game-page__topbar {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.game-page__back {
+  min-width: 0;
+  overflow: hidden;
+  color: #7dd3fc;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-page__shortcuts {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.55rem;
+}
+
+.game-page__shortcut {
+  position: relative;
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid #334155;
+  border-radius: 50%;
+  color: #cbd5e1;
+  background: #172238;
+  cursor: pointer;
+}
+
+.game-page__shortcut:hover {
+  border-color: #475569;
+  color: #7dd3fc;
+  background: #1e293b;
+}
+
+.game-page__shortcut svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.game-page__badge {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.2rem;
+  display: grid;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  place-items: center;
+  border: 2px solid #0f172a;
+  border-radius: 999px;
+  padding: 0 0.2rem;
+  color: white;
+  background: #ef4444;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.game-page__heading {
+  text-align: center;
+}
+
+.game-page__heading h1 {
+  font-size: clamp(2rem, 9vw, 3rem);
+  line-height: 1.05;
+}
+
+.game-page__heading .subtle {
+  margin: 0.5rem 0 0;
+}
+
+.game-page__feedback {
+  position: fixed;
+  z-index: 35;
+  top: calc(1rem + env(safe-area-inset-top));
+  right: 1rem;
+  left: 1rem;
+  width: min(40rem, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.game-ranking {
+  min-height: 0;
+  margin: 0;
+  padding: clamp(0.85rem, 2vh, 1.15rem);
+}
+
+.game-ranking h2 {
+  margin-bottom: clamp(0.6rem, 1.5vh, 1rem);
+}
+
+.game-ranking__list {
+  display: grid;
+  gap: clamp(0.45rem, 1.2vh, 0.75rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.game-ranking__entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.game-ranking__position {
+  width: 1.75rem;
+  color: #94a3b8;
+  text-align: center;
+  font-weight: 800;
+}
+
+.game-ranking__name {
+  position: relative;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  border: 2px solid #475569;
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  background: #172238;
+}
+
+.game-ranking__entry--1 .game-ranking__position { color: #fbbf24; }
+.game-ranking__entry--1 .game-ranking__name {
+  border-color: #fbbf24;
+  padding-right: 2.15rem;
+  box-shadow: 0 0 0 2px rgb(251 191 36 / 10%);
+}
+.game-ranking__entry--2 .game-ranking__position { color: #cbd5e1; }
+.game-ranking__entry--2 .game-ranking__name {
+  border-color: #cbd5e1;
+  box-shadow: 0 0 0 2px rgb(203 213 225 / 10%);
+}
+.game-ranking__entry--3 .game-ranking__position { color: #d97706; }
+.game-ranking__entry--3 .game-ranking__name {
+  border-color: #d97706;
+  box-shadow: 0 0 0 2px rgb(217 119 6 / 10%);
+}
+
+.game-ranking__entry strong {
+  white-space: nowrap;
+  font-size: 0.82rem;
+}
+
+.game-ranking__crown {
+  position: absolute;
+  top: 50%;
+  right: -0.8rem;
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  transform: translateY(-50%);
+  color: #fbbf24;
+  background: #1e293b;
+}
+
+.game-ranking__crown svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: #fbbf24;
+  stroke: #fde68a;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.game-page__victory {
+  display: grid;
+  min-height: 0;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.game-page__victory-button {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  width: clamp(7rem, 20vh, 9rem);
+  height: clamp(7rem, 20vh, 9rem);
+  place-content: center;
+  gap: 0.25rem;
+  border: 1px solid rgb(125 211 252 / 75%);
+  border-radius: 50%;
+  color: #082f49;
+  background: linear-gradient(145deg, #7dd3fc, #38bdf8);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%);
+  cursor: pointer;
+}
+
+.game-page__victory-button::before {
+  position: absolute;
+  z-index: -1;
+  inset: -1.5rem;
+  border-radius: 50%;
+  background: rgb(56 189 248 / 35%);
+  filter: blur(22px);
+  content: '';
+}
+
+.game-page__victory-button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.game-page__victory-button:disabled {
+  cursor: wait;
+  filter: saturate(0.45);
+  opacity: 0.65;
+}
+
+.game-page__victory-button strong {
+  font-size: clamp(1.65rem, 5vw, 2.15rem);
+  line-height: 1;
+}
+
+.game-page__victory-button span {
+  width: 5.5rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.game-page__victory > p {
+  max-width: 18rem;
+  margin: 0.75rem 0 0;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.game-page__champion {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid #334155;
+  padding-top: 0.7rem;
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.game-page__champion strong {
+  overflow: hidden;
+  color: #e5eef8;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-modal-backdrop {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  overflow-y: auto;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(2 6 23 / 78%);
+  backdrop-filter: blur(4px);
+}
+
+.game-modal {
+  width: min(100%, 32rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  border: 1px solid #475569;
+  border-radius: 20px;
+  padding: 1.25rem;
+  background: #1e293b;
+  box-shadow: 0 24px 64px rgb(2 6 23 / 75%);
+}
+
+.game-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.game-modal__header h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.game-modal__close {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 2.75rem;
+  place-items: center;
+  border: 1px solid #475569;
+  border-radius: 50%;
+  color: #cbd5e1;
+  background: transparent;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.game-modal__close:hover { background: rgb(51 65 85 / 65%); }
+.game-modal__feedback { margin-top: 1rem; }
+.game-modal__list { margin-top: 1rem; }
+.game-modal__list li { padding: 0.65rem 0; }
+.game-modal__list p { color: #cbd5e1; line-height: 1.5; }
+.game-modal__form { margin-top: 1.25rem; }
+.game-modal__form .button { width: 100%; justify-self: stretch; }
+
+@media (max-width: 500px) {
+  .game-page {
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .game-ranking__entry {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .game-ranking__entry strong {
+    grid-column: 2;
+    color: #cbd5e1;
+  }
+
+  .game-modal-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .game-modal {
+    max-height: calc(100dvh - env(safe-area-inset-top) - 1rem);
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-height: 720px) {
+  .game-page {
+    gap: 0.45rem;
+    padding-top: 0.65rem;
+    padding-bottom: 0.45rem;
+  }
+
+  .game-page__topbar { min-height: 2.4rem; }
+  .game-page__shortcut { width: 2.4rem; height: 2.4rem; }
+  .game-page__heading h1 { font-size: 1.8rem; }
+  .game-page__heading .subtle { margin-top: 0.3rem; font-size: 0.8rem; }
+  .game-ranking { padding: 0.7rem; }
+  .game-ranking h2 { margin-bottom: 0.45rem; font-size: 1.05rem; }
+  .game-ranking__list { gap: 0.3rem; }
+  .game-ranking__name { padding-top: 0.32rem; padding-bottom: 0.32rem; }
+  .game-page__victory-button { width: 6.25rem; height: 6.25rem; }
+  .game-page__champion { padding-top: 0.45rem; }
+}
