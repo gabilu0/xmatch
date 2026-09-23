@@ -95,11 +95,12 @@
 .game-page__feedback {
   position: fixed;
   z-index: 35;
-  top: calc(1rem + env(safe-area-inset-top));
+  top: calc(4.5rem + env(safe-area-inset-top));
   right: 1rem;
   left: 1rem;
   width: min(40rem, calc(100% - 2rem));
   margin: 0 auto;
+  pointer-events: none;
 }
 
 .game-ranking {
